@@ -82,6 +82,8 @@ cd xiaosou
 
 ### 2. 安装依赖
 
+> **重要：本步骤不可跳过，否则站点 500。** GitHub 源码不含 `vendor/` 目录（已 gitignore），必须执行 `composer install` 生成 `vendor/autoload.php`。典型报错 `Failed to open stream .../vendor/autoload.php` 即为漏装依赖。详见 [宝塔教程 4.3 节](docs/宝塔面板部署教程.md#43-安装-composer-依赖)。
+
 ```bash
 composer install
 ```
