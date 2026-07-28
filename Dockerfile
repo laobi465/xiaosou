@@ -43,6 +43,7 @@ RUN set -eux \
     && echo $TZ > /etc/timezone
 
 # 编译安装 PHP 扩展
+# 注意：opcache 已内置，只能用 docker-php-ext-enable 启用，不能用 docker-php-ext-install
 RUN set -eux \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
@@ -50,14 +51,14 @@ RUN set -eux \
         mysqli \
         gd \
         bcmath \
-        opcache \
         zip \
         bz2 \
         intl \
         mbstring \
         pcntl \
         sockets \
-    && pecl install redis-6.0.2 \
+    && docker-php-ext-enable opcache \
+    && pecl install redis \
     && docker-php-ext-enable redis
 
 # Composer（国内镜像加速）
