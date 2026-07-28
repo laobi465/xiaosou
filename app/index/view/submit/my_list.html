@@ -41,9 +41,9 @@
                 <tbody>
                     {foreach $submissions as $vo}
                     <tr>
-                        <td class="wrap">{$vo.title}</td>
+                        <td class="wrap">{$vo.title|htmlspecialchars}</td>
                         <td>
-                            {if condition="$vo->panSource"}{$vo.panSource.name}{else/}<span class="text-muted">未知</span>{/if}
+                            {if condition="$vo->panSource"}{$vo.panSource.name|htmlspecialchars}{else/}<span class="text-muted">未知</span>{/if}
                         </td>
                         <td>
                             {switch $vo.resource_type}

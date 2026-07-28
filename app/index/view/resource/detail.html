@@ -3,10 +3,10 @@
     {/* 资源头部信息：封面 + 信息双列 */}
     <header class="detail-header" data-reveal>
         {if condition="!empty($resource['cover'])"}
-            <img class="detail-cover" src="{$resource.cover}" alt="{$resource.title}">
+            <img class="detail-cover" src="{$resource.cover}" alt="{$resource.title|htmlspecialchars}">
         {/if}
         <div class="detail-info">
-            <h1>{$resource.title}</h1>
+            <h1>{$resource.title|htmlspecialchars}</h1>
             <div class="detail-meta">
                 <span class="type-badge t{$resource.resource_type}">
                     {switch $resource.resource_type}
@@ -23,13 +23,13 @@
                     <span class="meta-pill">大小：{:round($resource['file_size']/1048576,2)} MB</span>
                 {/if}
                 {if condition="!empty($resource['file_format'])"}
-                    <span class="meta-pill">格式：{$resource.file_format}</span>
+                    <span class="meta-pill">格式：{$resource.file_format|htmlspecialchars}</span>
                 {/if}
                 <span class="meta-pill">浏览：{$resource.view_count}</span>
                 <span class="meta-pill">更新：{$resource.create_time|substr=0,10}</span>
             </div>
             {if condition="!empty($resource['intro'])"}
-                <div class="detail-intro">{$resource.intro}</div>
+                <div class="detail-intro">{$resource.intro|htmlspecialchars}</div>
             {/if}
         </div>
     </header>
@@ -80,7 +80,7 @@
             <div class="related-list" data-reveal-group>
                 {foreach $related as $vo}
                     <div class="related-item" data-reveal>
-                        <a href="/resource/{$vo.id}" class="related-link">{$vo.title}</a>
+                        <a href="/resource/{$vo.id}" class="related-link">{$vo.title|htmlspecialchars}</a>
                         <span class="related-date">{$vo.create_time|substr=0,10}</span>
                     </div>
                 {/foreach}

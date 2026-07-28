@@ -23,7 +23,7 @@
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>启用</option>
-            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>禁用</option>
+            <option value="0" {if condition="$status === '0'"}selected{/if}>禁用</option>
         </select>
     </div>
     <div class="form-item toolbar-actions">

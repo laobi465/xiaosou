@@ -1,5 +1,5 @@
 <section>
-    <div class="pay-result pay-status-{switch $result.status}{case 1}success{/case}{case -1}fail{/case}{case 3}fail{/case}{default/}pending{/switch}" data-reveal>
+    <div class="pay-result pay-status-{switch $result.status}{case 1}success{/case}{case -1}fail{/case}{case -2}fail{/case}{case 3}fail{/case}{default/}pending{/switch}" data-reveal>
         <div class="pay-icon" aria-hidden="true">
             {if condition="$result.status == 1"}
             {elseif condition="$result.status == 0 || $result.status == 2"/}
@@ -12,10 +12,11 @@
             {elseif condition="$result.status == 2"/}已退款
             {elseif condition="$result.status == 3"/}订单已关闭
             {elseif condition="$result.status == -1"/}订单不存在
+            {elseif condition="$result.status == -2"/}支付状态待确认
             {else/}支付状态未知
             {/if}
         </h2>
-        {if condition="$result.status != -1"}
+        {if condition="$result.status != -1 && $result.status != -2"}
             <div class="pay-order-info">
                 <p class="pay-info">订单号：<code class="code-text">{$result.order_no}</code></p>
                 <p class="pay-info">积分到账：<span class="pay-info-value">{$result.credits}</span></p>
@@ -23,6 +24,9 @@
         {/if}
         {if condition="$result.status == 0"}
             <p class="form-hint pay-hint">支付结果正在处理中，请稍后在订单列表查看最终状态。</p>
+        {/if}
+        {if condition="$result.status == -2"}
+            <p class="form-hint pay-hint">支付回调签名校验失败，请稍后在订单列表查看最终状态。</p>
         {/if}
         <div class="pay-actions">
             <a href="/" class="btn btn-primary">返回首页</a>

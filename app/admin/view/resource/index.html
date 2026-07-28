@@ -13,7 +13,7 @@
 
 <form class="toolbar" method="get" action="/admin/resource" data-reveal>
     <div class="form-item">
-        <input type="text" name="title" value="{$title}" placeholder="搜索资源标题" class="input-sm">
+        <input type="text" name="title" value="{$title|htmlspecialchars}" placeholder="搜索资源标题" class="input-sm">
     </div>
     <div class="form-item">
         <select name="resource_type">
@@ -31,7 +31,7 @@
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>正常</option>
-            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>失效</option>
+            <option value="0" {if condition="$status === '0'"}selected{/if}>失效</option>
             <option value="2" {if condition="$status == 2"}selected{/if}>待审</option>
             <option value="3" {if condition="$status == 3"}selected{/if}>驳回</option>
         </select>
@@ -60,7 +60,7 @@
             {foreach $list as $vo}
             <tr>
                 <td class="col-id">{$vo.id}</td>
-                <td class="text-ellipsis">{$vo.title}</td>
+                <td class="text-ellipsis">{$vo.title|htmlspecialchars}</td>
                 <td>
                     {if condition="$vo.resource_type == 1"}影视
                     {elseif condition="$vo.resource_type == 2"/}音乐

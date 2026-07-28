@@ -1512,7 +1512,7 @@ ul, ol {
 .text-warning { color: var(--accent-amber) !important; }
 .mt-10 { margin-top: var(--space-md) !important; }
 .flex { display: flex !important; }
-.flex-between { display: flex; justify-content: space-between; align-items: center; !important; }
+.flex-between { display: flex !important; justify-content: space-between !important; align-items: center !important; }
 .nowrap { white-space: nowrap !important; }
 
 /* ---------- 入场动画 ---------- */
@@ -2489,5 +2489,22 @@ ul, ol {
 
     .auth-subtitle {
         margin-top: 0;
+    }
+}
+
+/* ---------- 无障碍: 尊重用户减少动画偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    [data-reveal] {
+        opacity: 1 !important;
+        transform: none !important;
     }
 }

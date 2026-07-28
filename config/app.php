@@ -6,6 +6,9 @@ return [
     'app_host'         => env('APP.APP_HOST', ''),
     // 应用调试模式
     'app_debug'        => env('APP.DEBUG', false),
+    // 异常详情调试(与 app_debug 解耦, 控制异常响应是否返回 file/line/trace)
+    // 生产环境必须为 false, 避免暴露源码信息
+    'app_debug_detail' => (bool) env('APP.DEBUG_DETAIL', false),
     // 应用 Trace
     'app_trace'        => false,
     // 应用模式状态

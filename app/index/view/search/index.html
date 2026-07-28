@@ -2,7 +2,7 @@
     {/* 顶部搜索框 */}
     <div class="search-box" data-reveal>
         <form action="/search" method="get" role="search">
-            <input type="text" name="q" value="{$q}" placeholder="搜索资源..." autocomplete="off" aria-label="搜索关键词">
+            <input type="text" name="q" value="{$q|htmlspecialchars}" placeholder="搜索资源..." autocomplete="off" aria-label="搜索关键词">
             <button type="submit" aria-label="搜索">搜索</button>
         </form>
     </div>
@@ -10,7 +10,7 @@
     {/* 筛选栏 */}
     <div class="search-filter" data-reveal>
         <form action="/search" method="get" id="search-filter-form">
-            <input type="hidden" name="q" value="{$q}">
+            <input type="hidden" name="q" value="{$q|htmlspecialchars}">
             <div class="filter-row">
                 <div class="filter-item">
                     <label>类型</label>
@@ -27,15 +27,15 @@
                 </div>
                 <div class="filter-item">
                     <label>网盘源</label>
-                    <input type="text" name="sources" value="{$sources}" placeholder="多个用逗号分隔">
+                    <input type="text" name="sources" value="{$sources|htmlspecialchars}" placeholder="多个用逗号分隔">
                 </div>
                 <div class="filter-item">
                     <label>大小(MB)</label>
-                    <input type="text" name="size" value="{$size}" placeholder="如 10-100">
+                    <input type="text" name="size" value="{$size|htmlspecialchars}" placeholder="如 10-100">
                 </div>
                 <div class="filter-item">
                     <label>时间</label>
-                    <input type="text" name="time" value="{$time}" placeholder="如 2026-01-01,2026-01-31">
+                    <input type="text" name="time" value="{$time|htmlspecialchars}" placeholder="如 2026-01-01,2026-01-31">
                 </div>
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary btn-small">筛选</button>
@@ -75,10 +75,10 @@
             {foreach $result->list as $vo}
                 <article class="result-card" data-reveal>
                     <div class="result-card-title">
-                        <a href="/resource/{$vo.id}">{$vo.title}</a>
+                        <a href="/resource/{$vo.id}">{$vo.title|htmlspecialchars}</a>
                     </div>
                     {if condition="!empty($vo['intro'])"}
-                        <div class="result-card-intro">{$vo.intro}</div>
+                        <div class="result-card-intro">{$vo.intro|htmlspecialchars}</div>
                     {/if}
                     <div class="result-card-meta">
                         <span class="type-badge t{$vo.resource_type}">
@@ -96,7 +96,7 @@
                             <span class="meta-item">{:round($vo['file_size']/1048576,2)} MB</span>
                         {/if}
                         {if condition="!empty($vo['file_format'])"}
-                            <span class="meta-item">{$vo.file_format}</span>
+                            <span class="meta-item">{$vo.file_format|htmlspecialchars}</span>
                         {/if}
                         <span class="meta-item">{$vo.create_time|substr=0,10}</span>
                     </div>

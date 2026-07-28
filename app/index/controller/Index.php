@@ -8,7 +8,6 @@ use app\common\enum\AdSlotCode;
 use app\common\model\Resource;
 use app\common\service\AdService;
 use app\common\service\SearchService;
-use Pansou\Search\MysqlFulltextDriver;
 
 /**
  * 首页
@@ -20,13 +19,18 @@ class Index extends BaseController
      */
     public function index()
     {
-        $searchService = new SearchService(new MysqlFulltextDriver());
+        // 通过容器解析 SearchService(SearchDriverInterface 已在 AppService 中绑定)
+        $searchService = app(SearchService::class);
         $adService     = app(AdService::class);
 
-        // 热搜词 TOP10
+        // 首页展示数量配置化
+        $hotKeywordsLimit = (int) config('pan.index.hot_keywords', 10);
+        $latestLimit      = (int) config('pan.index.latest_limit', 12);
+
+        // 热搜词
         $hotKeywords = [];
         try {
-            $hotKeywords = $searchService->hotKeywords(10);
+            $hotKeywords = $searchService->hotKeywords($hotKeywordsLimit);
         } catch (\Throwable $e) {
             trace('index_hot_keywords_error: ' . $e->getMessage(), 'error');
         }
@@ -44,7 +48,7 @@ class Index extends BaseController
         try {
             $resources = Resource::normal()
                 ->order('create_time', 'desc')
-                ->limit(12)
+                ->limit($latestLimit)
                 ->select();
         } catch (\Throwable $e) {
             trace('index_resources_error: ' . $e->getMessage(), 'error');

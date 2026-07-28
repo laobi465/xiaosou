@@ -25,9 +25,128 @@ class ConfigService
     protected const CACHE_PREFIX = 'config:';
     protected const CACHE_TTL    = 3600;
 
+    /**
+     * 配置项白名单: group => [key => type]
+     * type: int(整数) / bool(0/1) / string(字符串) / enum(枚举,见 VALUES)
+     *
+     * 用于逐 key 校验,防止写入任意 key。仅白名单内的 key 允许通过 set 保存。
+     */
+    protected const WHITELIST = [
+        'smtp' => [
+            'smtp_host'       => 'string',
+            'smtp_port'       => 'int',
+            'smtp_user'       => 'string',
+            'smtp_pass'       => 'string',
+            'smtp_from_name'  => 'string',
+            'smtp_encryption' => 'enum',
+        ],
+        'payment' => [
+            'caihong_pid' => 'string',
+            'caihong_key' => 'string',
+            'caihong_api' => 'string',
+            'notify_url'  => 'string',
+            'return_url'  => 'string',
+        ],
+        'site' => [
+            'site_name'           => 'string',
+            'site_logo'           => 'string',
+            'site_icp'            => 'string',
+            'site_seo_title'      => 'string',
+            'site_seo_keywords'   => 'string',
+            'site_seo_description'=> 'string',
+        ],
+        'credit' => [
+            'credit_register_gift'      => 'int',
+            'credit_sign_in'            => 'int',
+            'credit_sign_in_continuous' => 'int',
+            'credit_view_link'          => 'int',
+            'credit_submit_reward'      => 'int',
+        ],
+        'security' => [
+            'rate_search_per_min'      => 'int',
+            'rate_verify_per_ip_10min' => 'int',
+            'ip_blacklist'             => 'string',
+            'sensitive_filter_enabled' => 'bool',
+        ],
+    ];
+
+    /** smtp_encryption 枚举允许值 */
+    protected const ENCRYPTION_VALUES = ['ssl', 'tls', 'none'];
+
     public function __construct(App $app)
     {
         $this->app = $app;
+    }
+
+    /**
+     * 获取指定分组的白名单 key 列表
+     *
+     * @param string $group
+     * @return array<string,string> [key => type]
+     */
+    public function getWhitelistKeys(string $group): array
+    {
+        return self::WHITELIST[$group] ?? [];
+    }
+
+    /**
+     * 判断指定 key 是否在白名单内
+     *
+     * @param string $group
+     * @param string $key
+     * @return bool
+     */
+    public function isWhitelisted(string $group, string $key): bool
+    {
+        return isset(self::WHITELIST[$group][$key]);
+    }
+
+    /**
+     * 校验单个配置值是否符合类型规则
+     *
+     * @param string $group
+     * @param string $key
+     * @param mixed  $value
+     * @return array{0:bool,1:string} [是否合法, 错误信息]
+     */
+    public function validateValue(string $group, string $key, mixed $value): array
+    {
+        if (!$this->isWhitelisted($group, $key)) {
+            return [false, '配置项不在白名单内: ' . $key];
+        }
+
+        $type = self::WHITELIST[$group][$key];
+        $strValue = is_scalar($value) || $value === null ? (string) $value : '';
+
+        switch ($type) {
+            case 'int':
+                if (!ctype_digit($strValue) && $strValue !== '') {
+                    return [false, $key . ' 必须为整数'];
+                }
+                if ($strValue !== '' && (int) $strValue < 0) {
+                    return [false, $key . ' 不能为负数'];
+                }
+                break;
+            case 'bool':
+                if (!in_array($strValue, ['0', '1', ''], true)) {
+                    return [false, $key . ' 必须为 0 或 1'];
+                }
+                break;
+            case 'enum':
+                if ($key === 'smtp_encryption' && $strValue !== '' && !in_array($strValue, self::ENCRYPTION_VALUES, true)) {
+                    return [false, $key . ' 取值非法'];
+                }
+                break;
+            case 'string':
+            default:
+                // 字符串类型,长度上限 2000 防止超长写入
+                if (strlen($strValue) > 2000) {
+                    return [false, $key . ' 长度超过限制'];
+                }
+                break;
+        }
+
+        return [true, ''];
     }
 
     /**

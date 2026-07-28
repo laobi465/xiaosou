@@ -130,21 +130,28 @@ class CrawlerService
                     // a. 计算 url_hash
                     $urlHash = HashHelper::urlHash($shareUrl);
 
-                    // b. URL 去重: 已存在则跳过
-                    $existsLink = ResourceLink::where('url_hash', $urlHash)->find();
-                    if ($existsLink) {
-                        continue;
-                    }
-
-                    // c/d. 查找/创建 Resource + 创建 ResourceLink(事务保证原子入库)
+                    // b/c/d. 事务内行锁去重 + 创建 Resource + ResourceLink(原子入库)
+                    $skip = false;
                     Db::transaction(function () use (
                         $title, $cover, $intro, $resourceType, $fileSize,
-                        $shareUrl, $extractCode, $urlHash, $panSourceId
+                        $shareUrl, $extractCode, $urlHash, $panSourceId, &$skip
                     ) {
-                        $resource = Resource::where('title', $title)->find();
+                        // 行锁查询 url_hash 是否已存在(防并发重复入库)
+                        $existsLink = ResourceLink::where('url_hash', $urlHash)
+                            ->lock(true)
+                            ->find();
+                        if ($existsLink) {
+                            $skip = true;
+                            return;
+                        }
+
+                        // title 归一化(去多余空白)提升 Resource 去重可靠性
+                        $normalizedTitle = preg_replace('/\s+/u', ' ', trim($title));
+
+                        $resource = Resource::where('title', $normalizedTitle)->find();
                         if (!$resource) {
                             $resource = Resource::create([
-                                'title'           => $title,
+                                'title'           => $normalizedTitle,
                                 'cover'           => $cover,
                                 'intro'           => $intro,
                                 'resource_type'   => $resourceType,
@@ -168,7 +175,9 @@ class CrawlerService
                         ]);
                     });
 
-                    $newCount++;
+                    if (!$skip) {
+                        $newCount++;
+                    }
                 } catch (\Throwable $e) {
                     // 单个 item 失败不影响其他
                     trace('crawl_item_error: task_id=' . $task->id . ' ' . $e->getMessage(), 'error');
@@ -200,7 +209,9 @@ class CrawlerService
             $tasks = CrawlTask::where('enabled', 1)
                 ->where(function ($query) use ($now) {
                     $query->where('next_run_at', '<=', $now)
-                          ->whereOr('next_run_at', 'null');
+                          ->whereOr(function ($query) {
+                              $query->whereNull('next_run_at');
+                          });
                 })
                 ->select();
 

@@ -38,6 +38,13 @@ class SensitiveFilter
     protected static ?int $loadedAt = null;
 
     /**
+     * 上次加载是否失败(DB 异常时为 true)
+     *
+     * @var bool
+     */
+    protected static bool $loadFailed = false;
+
+    /**
      * 静态缓存 TTL(秒),10 分钟
      */
     protected const CACHE_TTL = 600;
@@ -63,11 +70,19 @@ class SensitiveFilter
         try {
             $filter = self::getFilter();
             if ($filter === null) {
+                // DFA 加载失败: 根据 fail_closed 配置决定
+                if (self::isFailClosed()) {
+                    trace('sensitive_filter_fail_closed_blocked: text_len=' . mb_strlen($text), 'warning');
+                    return ['hit' => true, 'words' => []];
+                }
                 return ['hit' => false, 'words' => []];
             }
             return $filter->check($text);
         } catch (\Throwable $e) {
             trace('sensitive_filter_check_error: ' . $e->getMessage(), 'error');
+            if (self::isFailClosed()) {
+                return ['hit' => true, 'words' => []];
+            }
             return ['hit' => false, 'words' => []];
         }
     }
@@ -76,13 +91,17 @@ class SensitiveFilter
      * 替换文本中的敏感词为 ***
      *
      * @param string $text 待处理文本
-     * @return string 替换后的文本(失败时返回原文)
+     * @return string 替换后的文本(失败时根据配置返回原文或告警)
      */
     public function replace(string $text): string
     {
         try {
             $filter = self::getFilter();
             if ($filter === null) {
+                // DFA 加载失败: fail-closed 返回原文带告警, fail-open 静默返回原文
+                if (self::isFailClosed()) {
+                    trace('sensitive_filter_fail_closed_replace_alert: text_len=' . mb_strlen($text), 'warning');
+                }
                 return $text;
             }
             return $filter->replace($text, '***');
@@ -97,6 +116,7 @@ class SensitiveFilter
      *
      * 若静态缓存为空或已过期,则重新加载敏感词并构建 DFA 树。
      * Redis 不可用时直接查 DB,不阻塞业务。
+     * 加载失败(DB 异常)时返回 null,由调用方根据 fail_closed 配置决定策略。
      *
      * @return DfaFilter|null
      */
@@ -109,6 +129,13 @@ class SensitiveFilter
 
         // 加载敏感词列表并构建 DFA 树
         $words  = self::loadWords();
+        if (self::$loadFailed) {
+            // DB 加载失败: 不缓存空过滤器, 返回 null 由调用方决定策略
+            self::$filter   = null;
+            self::$loadedAt = time();
+            return null;
+        }
+
         $filter = new DfaFilter();
         $filter->load($words);
 
@@ -122,11 +149,14 @@ class SensitiveFilter
      *
      * 优先从 Redis 读取(跨进程共享),Redis 不可用时直接查 DB。
      * 查 DB 成功后回写 Redis 缓存。
+     * DB 查询失败时设置 $loadFailed 标志。
      *
      * @return array<int,string>
      */
     protected static function loadWords(): array
     {
+        self::$loadFailed = false;
+
         // 1. 尝试 Redis 缓存
         $redis = self::redis();
         if ($redis !== null) {
@@ -143,12 +173,13 @@ class SensitiveFilter
             }
         }
 
-        // 2. 回退查 DB
+        // 2. 回退查 DB(失败时标记 $loadFailed)
         try {
             $words = SensitiveWord::where('status', 1)->column('word');
             $words = array_map('strval', $words);
         } catch (\Throwable $e) {
             trace('sensitive_filter_db_load_error: ' . $e->getMessage(), 'error');
+            self::$loadFailed = true;
             $words = [];
         }
 
@@ -166,6 +197,17 @@ class SensitiveFilter
         }
 
         return $words;
+    }
+
+    /**
+     * 是否启用 fail-closed 策略
+     * 配置: pan.security.sensitive_fail_closed
+     * - false(默认): DFA 加载失败时放行(fail-open)
+     * - true: DFA 加载失败时拒绝(fail-closed)
+     */
+    protected static function isFailClosed(): bool
+    {
+        return (bool) config('pan.security.sensitive_fail_closed', false);
     }
 
     /**
@@ -206,8 +248,9 @@ class SensitiveFilter
      */
     public static function clearCache(): void
     {
-        self::$filter   = null;
-        self::$loadedAt = null;
+        self::$filter     = null;
+        self::$loadedAt   = null;
+        self::$loadFailed = false;
 
         $redis = self::redis();
         if ($redis !== null) {

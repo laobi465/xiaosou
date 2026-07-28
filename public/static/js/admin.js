@@ -129,6 +129,10 @@
             var headers = options.headers || {};
             headers['X-Requested-With'] = 'XMLHttpRequest';
 
+            // 自动附带 CSRF token (写操作才需要, 但 GET/HEAD 附带也无害)
+            var csrfToken = getCsrfToken();
+            if (csrfToken) { headers['X-CSRF-Token'] = csrfToken; }
+
             var fetchOpts = { method: method, headers: headers, credentials: 'same-origin' };
 
             if (method !== 'GET' && method !== 'HEAD') {
@@ -183,7 +187,14 @@
         if (str == null) return '';
         return String(str)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /* ---- CSRF Token 读取(从 meta 标签) ---- */
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : null;
     }
 
     function buildQuery(data) {

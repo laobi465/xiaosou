@@ -29,7 +29,7 @@
         <select name="result">
             <option value="">全部结果</option>
             <option value="1" {if condition="$result == 1"}selected{/if}>成功</option>
-            <option value="0" {if condition="$result === 0 || $result === '0'"}selected{/if}>失败</option>
+            <option value="0" {if condition="$result === '0'"}selected{/if}>失败</option>
         </select>
     </div>
     <div class="form-item toolbar-actions">

@@ -5,7 +5,6 @@ namespace app\command;
 
 use app\common\service\AdService;
 use app\common\service\SearchService;
-use Pansou\Search\MysqlFulltextDriver;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
@@ -38,8 +37,8 @@ class AdStatAgg extends Command
         app(AdService::class)->aggregateDaily();
         $output->writeln('<info>[ad:agg] 广告展示/点击统计已归档至 ad_stats</info>');
 
-        // 2. 热搜词归档(显式注入 MySQL 全文搜索驱动)
-        $searchService = new SearchService(new MysqlFulltextDriver());
+        // 2. 热搜词归档(通过容器解析 SearchService, SearchDriverInterface 已在 AppService 中绑定)
+        $searchService = app(SearchService::class);
         $searchService->archiveHotKeywords();
         $output->writeln('<info>[ad:agg] 热搜词已归档至 hot_keywords</info>');
 

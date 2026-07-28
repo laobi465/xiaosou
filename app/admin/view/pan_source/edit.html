@@ -16,16 +16,16 @@
         <div class="form-row">
             <div class="form-item">
                 <label>名称 <span class="required">*</span></label>
-                <input type="text" name="name" value="{$vo.name}" required>
+                <input type="text" name="name" value="{$vo.name|htmlspecialchars}" required>
             </div>
             <div class="form-item">
                 <label>代码 <span class="required">*</span></label>
-                <input type="text" name="code" value="{$vo.code}" required>
+                <input type="text" name="code" value="{$vo.code|htmlspecialchars}" required>
             </div>
         </div>
         <div class="form-item">
             <label>采集器类名</label>
-            <input type="text" name="crawler_class" value="{$vo.crawler_class}">
+            <input type="text" name="crawler_class" value="{$vo.crawler_class|htmlspecialchars}">
         </div>
         <div class="form-row">
             <div class="form-item">
@@ -50,7 +50,7 @@
         </div>
         <div class="form-item">
             <label>API 配置（JSON）</label>
-            <textarea name="api_config">{$vo.api_config}</textarea>
+            <textarea name="api_config">{$vo.api_config|htmlspecialchars}</textarea>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存</button>

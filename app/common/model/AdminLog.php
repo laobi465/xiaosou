@@ -20,8 +20,8 @@ class AdminLog extends Model
     protected $updateTime = false;
 
     protected $type = [
-        'admin_id'  => 'int',
-        'target_id' => 'int',
+        'admin_id' => 'int',
+        // target_id 可空(部分操作无目标), 不强制 int cast 避免 null → 0
     ];
 
     /**

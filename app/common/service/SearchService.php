@@ -70,13 +70,18 @@ class SearchService
             trace('search_cache_read_error: ' . $e->getMessage(), 'error');
         }
 
-        // 2. 调用 driver 查询并记录耗时
-        $start  = microtime(true);
-        $result = $this->driver->search($q);
-        $took   = round((microtime(true) - $start) * 1000, 2);
+        // 2. 调用 driver 查询并记录耗时(异常降级返回空结果)
+        $start = microtime(true);
+        try {
+            $result = $this->driver->search($q);
+        } catch (\Throwable $e) {
+            trace('search_driver_error: keyword=' . $q->keyword . ' msg=' . $e->getMessage(), 'error');
+            $result = new SearchResult([], 0, 0);
+        }
+        $took        = round((microtime(true) - $start) * 1000, 2);
         $result->took = $took;
 
-        // 3. 异步写入 search_logs(失败降级,不影响主流程)
+        // 3. 写入 search_logs(同步写入,失败降级不影响主流程)
         $this->writeSearchLog($q, $result, $userId, $ip);
 
         // 4. 异步更新热词 Redis ZINCRBY(失败降级)
@@ -151,6 +156,7 @@ class SearchService
      * 归档前日热词到 hot_keywords 表
      *
      * 供 ad:agg 命令调用,将 Redis ZSET 数据落库后清理 key。
+     * 仅当全部热词归档成功才清理 Redis key, 避免部分失败导致数据丢失。
      */
     public function archiveHotKeywords(): void
     {
@@ -171,11 +177,14 @@ class SearchService
             $table = (new HotKeyword())->getTable();
             $now   = date('Y-m-d H:i:s');
 
+            $failCount = 0;
+            $totalCount = 0;
             foreach ($items as $keyword => $score) {
                 $keyword = (string) $keyword;
                 if ($keyword === '') {
                     continue;
                 }
+                $totalCount++;
                 try {
                     Db::execute(
                         'INSERT INTO `' . $table . '` (keyword, stat_date, search_cnt, create_time) '
@@ -183,14 +192,20 @@ class SearchService
                         [$keyword, $yesterday, (int) $score, $now]
                     );
                 } catch (\Throwable $e) {
-                    trace('hot_keywords_archive_row_error: ' . $e->getMessage(), 'error');
+                    $failCount++;
+                    trace('hot_keywords_archive_row_error: keyword=' . $keyword . ' ' . $e->getMessage(), 'error');
                 }
             }
 
-            try {
-                $redis->del($key);
-            } catch (\Throwable $e) {
-                trace('hot_keywords_archive_del_error: ' . $e->getMessage(), 'error');
+            // 仅当全部热词归档成功才清理 Redis key(防数据丢失)
+            if ($failCount === 0) {
+                try {
+                    $redis->del($key);
+                } catch (\Throwable $e) {
+                    trace('hot_keywords_archive_del_error: ' . $e->getMessage(), 'error');
+                }
+            } else {
+                trace('hot_keywords_archive_partial_fail: fail=' . $failCount . ' total=' . $totalCount . ', Redis key 保留待下次重试', 'warning');
             }
         } catch (\Throwable $e) {
             trace('archive_hot_keywords_error: ' . $e->getMessage(), 'error');
@@ -198,7 +213,10 @@ class SearchService
     }
 
     /**
-     * 异步写入搜索日志(失败降级,不阻塞主流程)
+     * 同步写入搜索日志(失败降级,不阻塞主流程)
+     *
+     * 注: 当前为同步 DB 写入。如需异步化可改为 Queue::push 到 stat 通道,
+     * 但需注意 SearchQuery 不可序列化, 应在调用方提取基本字段后投递。
      */
     protected function writeSearchLog(SearchQuery $q, SearchResult $result, ?int $userId, ?string $ip): void
     {

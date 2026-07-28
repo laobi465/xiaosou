@@ -45,4 +45,12 @@ class ResourceType
     {
         return self::MAP;
     }
+
+    /**
+     * 校验类型是否合法
+     */
+    public static function isValid(int $type): bool
+    {
+        return array_key_exists($type, self::MAP);
+    }
 }

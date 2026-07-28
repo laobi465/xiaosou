@@ -12,7 +12,7 @@
     <form action="/admin/package/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/package">
         <div class="form-item">
             <label>套餐名称 <span class="required">*</span></label>
-            <input type="text" name="name" value="{$vo.name}" required>
+            <input type="text" name="name" value="{$vo.name|htmlspecialchars}" required>
         </div>
         <div class="form-row">
             <div class="form-item">

@@ -53,9 +53,18 @@ class ExceptionHandle extends Handle
             return $this->jsonResponse(1001, $e->getError(), [], $requestId);
         }
 
+        // 404 页面(非 AJAX 普通请求)
+        if ($e instanceof HttpException && $e->getStatusCode() === 404) {
+            return Response::create('', 'view')->assign('request_id', $requestId)
+                ->code(404)->view('layout/404');
+        }
+
+        // 其他异常: 统一脱敏输出
+        // app_debug_detail 与 DEBUG 解耦, 生产环境强制 false, 避免暴露源码信息
+        $debug = (bool) config('app.app_debug_detail');
+
         // Ajax/JSON 请求
         if ($request->isAjax() || str_contains($request->header('accept', ''), 'json')) {
-            $debug  = (bool) env('APP.DEBUG', false);
             $message = $debug ? $e->getMessage() : '系统繁忙';
             $data    = $debug ? [
                 'file'  => $e->getFile(),
@@ -65,13 +74,12 @@ class ExceptionHandle extends Handle
             return $this->jsonResponse(5000, $message, $data, $requestId);
         }
 
-        // 普通页面请求
-        if ($e instanceof HttpException && $e->getStatusCode() === 404) {
-            return Response::create('', 'view')->assign('request_id', $requestId)
-                ->code(404)->view('layout/404');
+        // 普通页面请求: 调试模式用框架默认渲染便于排错, 生产环境返回脱敏 JSON 避免暴露敏感信息
+        if ($debug) {
+            return parent::render($request, $e);
         }
 
-        return parent::render($request, $e);
+        return $this->jsonResponse(5000, '系统繁忙', [], $requestId);
     }
 
     /**

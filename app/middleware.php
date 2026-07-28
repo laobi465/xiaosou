@@ -3,6 +3,8 @@
 
 return [
     \think\middleware\SessionInit::class,
+    // CSRF 校验需在 Session 之后,确保 csrf_token 可读写
+    \app\middleware\CheckCsrf::class,
     \app\middleware\RequestId::class,
     \app\middleware\LoadConfig::class,
     \app\middleware\GlobalLog::class,

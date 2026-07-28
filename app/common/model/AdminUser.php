@@ -24,6 +24,11 @@ class AdminUser extends Model
     ];
 
     /**
+     * 隐藏敏感字段: 密码哈希(序列化时不再暴露)
+     */
+    protected $hidden = ['password'];
+
+    /**
      * 一对多: 管理员操作日志
      */
     public function logs(): \think\model\relation\HasMany

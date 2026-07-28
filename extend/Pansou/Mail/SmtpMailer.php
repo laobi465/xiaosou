@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Pansou\Mail;
 
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 /**
  * SMTP 邮件发送封装(PHPMailer)
@@ -27,23 +26,26 @@ class SmtpMailer
      * @param string $to      收件人邮箱
      * @param string $subject 主题
      * @param string $body    正文(HTML)
-     * @return bool true=发送成功
+     * @return bool true=发送成功 false=发送失败或收件人非法
      */
     public function send(string $to, string $subject, string $body): bool
     {
-        // TODO: 完整实现待补充,以下为骨架
-        //   1. 收件人/主题/正文设置
-        //   2. $this->mailer->send()
-        //   3. 异常捕获并返回 false
+        // 收件人邮箱格式前置校验, 非法直接返回 false
+        if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+            return false;
+        }
+
         try {
-            $this->mailer->clearAddresses();
+            // clearAllRecipients 同时清理 To/Cc/Bcc, 避免上次发送残留
+            $this->mailer->clearAllRecipients();
             $this->mailer->addAddress($to);
             $this->mailer->Subject = $subject;
             $this->mailer->isHTML(true);
             $this->mailer->Body    = $body;
             $this->mailer->AltBody = strip_tags($body);
             return $this->mailer->send();
-        } catch (PHPMailerException $e) {
+        } catch (\Throwable $e) {
+            // 扩展为 \Throwable, 捕获所有异常(含 PHPMailerException 及底层网络异常)
             return false;
         }
     }
@@ -67,6 +69,8 @@ class SmtpMailer
         $this->mailer->SMTPAuth   = true;
         $this->mailer->Username   = $user;
         $this->mailer->Password   = $pass;
+        // 显式设置超时(秒), 避免长时间挂起
+        $this->mailer->Timeout    = 10;
         if ($encryption === 'ssl') {
             $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
         } elseif ($encryption === 'tls') {
@@ -74,7 +78,11 @@ class SmtpMailer
         }
         $this->mailer->CharSet = PHPMailer::CHARSET_UTF8;
         if ($from !== '') {
-            $this->mailer->setFrom($from, $fromName);
+            try {
+                $this->mailer->setFrom($from, $fromName);
+            } catch (\Throwable $e) {
+                trace('smtp_setfrom_error: ' . $e->getMessage(), 'error');
+            }
         }
     }
 }

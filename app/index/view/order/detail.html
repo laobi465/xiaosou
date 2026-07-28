@@ -18,7 +18,7 @@
             <table class="info-table">
                 <tbody>
                     <tr><th>订单号</th><td><code class="code-text">{$order.order_no}</code></td></tr>
-                    <tr><th>套餐</th><td>{if condition="$order->package"}{$order.package.name}{else/}套餐已删除{/if}</td></tr>
+                    <tr><th>套餐</th><td>{if condition="$order->package"}{$order.package.name|htmlspecialchars}{else/}套餐已删除{/if}</td></tr>
                     <tr><th>金额</th><td class="amount-cell">¥{$order.amount}</td></tr>
                     <tr><th>应到积分</th><td>{$order.credits}</td></tr>
                     <tr>
@@ -77,11 +77,11 @@
                             <td>
                                 <span class="log-event">
                                     {switch $vo.event}
-                                        {case 1}create{/case}
-                                        {case 2}notify{/case}
-                                        {case 3}sync{/case}
-                                        {case 4}refund{/case}
-                                        {case 5}close{/case}
+                                        {case create}创建{/case}
+                                        {case notify}回调{/case}
+                                        {case sync}同步{/case}
+                                        {case refund}退款{/case}
+                                        {case close}关闭{/case}
                                         {default/}{$vo.event}
                                     {/switch}
                                 </span>

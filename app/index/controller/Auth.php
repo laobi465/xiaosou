@@ -8,8 +8,10 @@ use app\common\enum\CreditType;
 use app\common\model\User;
 use app\common\model\UserLoginLog;
 use app\common\service\CreditService;
+use app\common\service\RateLimiter;
 use app\common\service\VerifyCodeService;
 use app\common\validate\AuthValidate;
+use think\facade\Db;
 use think\facade\Session;
 
 /**
@@ -17,6 +19,16 @@ use think\facade\Session;
  */
 class Auth extends BaseController
 {
+    /**
+     * 登录失败锁定阈值(次)
+     */
+    protected const LOGIN_FAIL_THRESHOLD = 5;
+
+    /**
+     * 登录失败锁定时长(秒) 15 分钟
+     */
+    protected const LOGIN_FAIL_LOCK_TTL = 900;
+
     /**
      * 登录页
      */
@@ -64,7 +76,9 @@ class Auth extends BaseController
 
     /**
      * 登录(Ajax)
-     * POST: email, code → 验证码校验(type=2) → 查/建用户 → 写 Session → JSON
+     * POST: email, code → 验证码校验(type=2) → 查用户 → 写 Session → JSON
+     *
+     * 注意: 不再自动注册, 用户不存在则提示先注册
      */
     public function doLogin()
     {
@@ -78,25 +92,37 @@ class Auth extends BaseController
             return $this->error($validate->getError());
         }
 
+        // 登录失败次数检查(IP 维度, 5 次锁定 15 分钟)
+        $limiter = app(RateLimiter::class);
+        $lockKey = 'user_login_fail:' . $this->request->ip();
+        $lock    = $limiter->checkLoginLock($lockKey, self::LOGIN_FAIL_THRESHOLD);
+        if ($lock['locked']) {
+            return $this->error('登录失败次数过多,请 15 分钟后再试', 2002);
+        }
+
         // 验证码校验(type=2 登录)
         $verifyService = app(VerifyCodeService::class);
         if (!$verifyService->verify($data['email'], $data['code'], 2)) {
+            $this->recordLoginFail($lockKey);
             return $this->error('验证码错误或已过期', 2001);
         }
 
-        // 查/建用户
+        // 查用户(不存在则提示先注册, 不再自动创建)
         $user = User::where('email', $data['email'])->find();
         if (!$user) {
-            $user = User::create([
-                'email'    => $data['email'],
-                'nickname' => explode('@', $data['email'])[0],
-                'status'   => 1,
-            ]);
-        } elseif ((int) $user->status !== 1) {
+            $this->recordLoginFail($lockKey);
+            return $this->error('账号不存在,请先注册');
+        }
+        if ((int) $user->status !== 1) {
+            $this->recordLoginFail($lockKey);
             return $this->error('账号已被封禁');
         }
 
-        // 写 Session
+        // 登录成功:清除失败计数
+        $limiter->clearLoginFail($lockKey);
+
+        // 写 Session(重新生成 sessionId 防固定会话攻击)
+        Session::regenerate(true);
         Session::set('user_id', (int) $user->id);
         Session::set('email', (string) $user->email);
         Session::set('nickname', (string) $user->nickname);
@@ -113,13 +139,16 @@ class Auth extends BaseController
             trace('user_login_log_error: ' . $e->getMessage(), 'error');
         }
 
-        $redirect = (string) $this->request->post('redirect', '/');
+        // redirect 参数校验(防开放重定向): 必须以 / 开头且不以 // 开头, 否则忽略
+        $redirect = self::sanitizeRedirect((string) $this->request->post('redirect', '/'));
         return $this->success(['url' => $redirect], '登录成功');
     }
 
     /**
      * 注册(Ajax)
      * POST: email, code → 验证码校验(type=1) → 创建用户 + 赠送注册积分 → 写 Session → JSON
+     *
+     * 创建用户 + 注册赠送积分在同一事务内, 任一失败回滚
      */
     public function doRegister()
     {
@@ -145,30 +174,36 @@ class Auth extends BaseController
             return $this->error('验证码错误或已过期', 2001);
         }
 
-        // 创建用户
-        $user = User::create([
-            'email'    => $data['email'],
-            'nickname' => explode('@', $data['email'])[0],
-            'status'   => 1,
-        ]);
-
-        // 赠送注册积分(失败降级)
+        // 赠送注册积分(配置驱动)
         $giftAmount = (int) config('pan.credit.register_gift');
-        if ($giftAmount > 0) {
-            try {
-                app(CreditService::class)->recharge(
-                    (int) $user->id,
-                    $giftAmount,
-                    CreditType::REGISTER_GIFT,
-                    null,
-                    '注册赠送'
-                );
-            } catch (\Throwable $e) {
-                trace('register_gift_error: ' . $e->getMessage(), 'error');
-            }
+
+        // 事务包裹: 创建用户 + 赠送积分(任一失败回滚)
+        try {
+            $user = Db::transaction(function () use ($data, $giftAmount) {
+                $user = User::create([
+                    'email'    => $data['email'],
+                    'nickname' => explode('@', $data['email'])[0],
+                    'status'   => 1,
+                ]);
+
+                if ($giftAmount > 0) {
+                    app(CreditService::class)->recharge(
+                        (int) $user->id,
+                        $giftAmount,
+                        CreditType::REGISTER_GIFT,
+                        null,
+                        '注册赠送'
+                    );
+                }
+
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            return $this->errorWithLog('注册失败,请稍后重试', $e, 'register_error');
         }
 
-        // 写 Session
+        // 写 Session(重新生成 sessionId 防固定会话攻击)
+        Session::regenerate(true);
         Session::set('user_id', (int) $user->id);
         Session::set('email', (string) $user->email);
         Session::set('nickname', (string) $user->nickname);
@@ -177,7 +212,8 @@ class Auth extends BaseController
     }
 
     /**
-     * 退出登录
+     * 退出登录(POST)
+     * 路由层已限定 POST 方法, 防止 GET 链接触发登出
      */
     public function logout()
     {
@@ -185,5 +221,33 @@ class Auth extends BaseController
         Session::delete('email');
         Session::delete('nickname');
         return $this->redirect('/');
+    }
+
+    /**
+     * 记录一次登录失败:递增 IP 维度失败计数(Redis 不可用时降级忽略)
+     */
+    protected function recordLoginFail(string $lockKey): void
+    {
+        try {
+            app(RateLimiter::class)->recordLoginFail($lockKey, self::LOGIN_FAIL_LOCK_TTL);
+        } catch (\Throwable $e) {
+            trace('user_login_fail_count_error: ' . $e->getMessage(), 'error');
+        }
+    }
+
+    /**
+     * 校验并清洗 redirect 参数, 防止开放重定向
+     *
+     * 规则: 必须以 / 开头且不以 // 开头, 否则返回默认 /
+     *
+     * @param string $url 待校验的跳转地址
+     * @return string 安全的站内跳转地址
+     */
+    public static function sanitizeRedirect(string $url): string
+    {
+        if ($url === '' || $url[0] !== '/' || str_starts_with($url, '//')) {
+            return '/';
+        }
+        return $url;
     }
 }

@@ -34,7 +34,9 @@ class PayService
     }
 
     /**
-     * 创建支付订单
+     * 创建支付订单(幂等)
+     *
+     * 同一用户对同一套餐若存在未过期的待支付订单, 则复用, 避免重复创建。
      *
      * @param int $userId    用户ID
      * @param int $packageId 套餐ID(credit_packages)
@@ -52,17 +54,29 @@ class PayService
             throw new BusinessException('套餐不存在或已下架');
         }
 
-        // 2. 计算积分(基础 + 赠送)
+        // 2. 幂等: 复用未过期的待支付订单(防止重复下单)
+        $now = date('Y-m-d H:i:s');
+        $existing = Order::where('user_id', $userId)
+            ->where('package_id', $packageId)
+            ->where('status', OrderStatus::PENDING)
+            ->where('expire_at', '>=', $now)
+            ->order('id', 'desc')
+            ->find();
+        if ($existing) {
+            return $existing;
+        }
+
+        // 3. 计算积分(基础 + 赠送)
         $credits = (int)$package->credits + (int)$package->bonus;
 
-        // 3. 生成订单号 PS + YYYYMMDD + 10 位唯一
+        // 4. 生成订单号 PS + YYYYMMDD + 10 位唯一
         $orderNo = HashHelper::orderNo('PS');
 
-        // 4. 过期时间(配置驱动,不硬编码)
-        $expireMinutes = (int)config('pan.order.expire_minutes');
+        // 5. 过期时间(配置驱动,不硬编码;最小 1 分钟防止订单立即过期)
+        $expireMinutes = max(1, (int)(config('pan.order.expire_minutes') ?? 30));
         $expireAt      = date('Y-m-d H:i:s', time() + $expireMinutes * 60);
 
-        // 5. 创建订单
+        // 6. 创建订单
         $order = Order::create([
             'order_no'   => $orderNo,
             'user_id'    => $userId,
@@ -73,7 +87,7 @@ class PayService
             'expire_at'  => $expireAt,
         ]);
 
-        // 6. 写 PaymentLog event=create(外部副作用降级)
+        // 7. 写 PaymentLog event=create(外部副作用降级)
         $this->safeLog($orderNo, 'create', [
             'user_id'    => $userId,
             'package_id' => $packageId,
@@ -82,6 +96,22 @@ class PayService
         ]);
 
         return $order;
+    }
+
+    /**
+     * 构建支付跳转 URL(业务逻辑下沉, Controller 不直接操作 SDK)
+     *
+     * @param Order $order 订单
+     * @return string 收银台跳转完整 URL
+     */
+    public function buildPayUrl(Order $order): string
+    {
+        $packageName = $order->package ? (string) $order->package->name : '积分套餐充值';
+        return $this->pay->buildPayUrl([
+            'out_trade_no' => (string) $order->order_no,
+            'name'         => $packageName,
+            'money'        => number_format((float) $order->amount, 2, '.', ''),
+        ]);
     }
 
     /**
@@ -115,22 +145,45 @@ class PayService
             return 'fail';
         }
 
-        // 4. 幂等: 已支付直接返回 success
-        if ((int)$order->status === OrderStatus::PAID) {
+        // 4. 幂等: 已支付或已关闭直接返回 success(已关闭订单回调不再发积分)
+        if (in_array((int)$order->status, [OrderStatus::PAID, OrderStatus::CLOSED], true)) {
+            trace('pay_notify_idempotent_skip: order_no=' . $orderNo . ' status=' . (int)$order->status, 'info');
             return 'success';
         }
 
-        // 5. 事务: 更新订单 + 积分到账
+        // 5. 事务: 乐观锁更新订单 + 积分到账
         try {
-            Db::transaction(function () use ($order, $params) {
-                // a. 更新订单为已支付
-                $order->status   = OrderStatus::PAID;
-                $order->pay_at   = date('Y-m-d H:i:s');
-                $order->trade_no = (string)($params['trade_no'] ?? '');
-                $order->pay_type = (string)($params['type'] ?? '');
-                $order->save();
+            Db::transaction(function () use ($order, $params, $orderNo) {
+                // a. 校验回调金额与订单金额一致(用 bcmath 避免 float 精度问题)
+                $notifyMoney = (string)($params['money'] ?? '');
+                $orderAmount = (string)$order->amount;
+                // bccomp 返回 0 表示相等; 精度 2 位小数(分)
+                if (bccomp($notifyMoney, $orderAmount, 2) !== 0) {
+                    // 金额不匹配: 抛 RuntimeException 由外层 catch(\Throwable) 返回 fail
+                    throw new \RuntimeException(
+                        '回调金额不匹配: notify=' . $notifyMoney . ' order=' . $orderAmount
+                    );
+                }
 
-                // b. 积分到账(关联订单主键 id)
+                // b. 乐观锁更新订单(仅 PENDING -> PAID, 防并发双发积分)
+                $now      = date('Y-m-d H:i:s');
+                $tradeNo  = (string)($params['trade_no'] ?? '');
+                $payType  = (string)($params['type'] ?? '');
+                $affected = Order::where('order_no', $orderNo)
+                    ->where('status', OrderStatus::PENDING)
+                    ->update([
+                        'status'   => OrderStatus::PAID,
+                        'pay_at'   => $now,
+                        'trade_no' => $tradeNo,
+                        'pay_type' => $payType,
+                    ]);
+
+                if ($affected === 0) {
+                    // 并发回调: 订单已被其他回调处理, 抛 BusinessException 返回 success(幂等)
+                    throw new BusinessException('订单状态已变更, 跳过积分发放');
+                }
+
+                // c. 积分到账(关联订单主键 id)
                 $packageName = $order->package ? (string)$order->package->name : '未知套餐';
                 app(CreditService::class)->recharge(
                     (int)$order->user_id,
@@ -140,7 +193,12 @@ class PayService
                     '充值套餐:' . $packageName
                 );
             });
+        } catch (BusinessException $e) {
+            // 订单已变更(并发回调幂等): 记录日志并返回 success 避免重复回调
+            trace('pay_notify_idempotent_skip: order_no=' . $orderNo . ' msg=' . $e->getMessage(), 'info');
+            return 'success';
         } catch (\Throwable $e) {
+            // 金额不匹配或其他事务错误: 记录日志并返回 fail
             trace('pay_notify_transaction_error: order_no=' . $orderNo . ' msg=' . $e->getMessage(), 'error');
             return 'fail';
         }
@@ -151,8 +209,11 @@ class PayService
     /**
      * 处理支付同步跳转(仅展示,不触发积分到账)
      *
+     * 同步跳转先调用 CaihongPay->verifyReturn 校验签名,
+     * 验签失败时返回 status=-2(支付状态待确认), 防止伪造跳转欺骗用户。
+     *
      * @param array $params 同步跳转参数
-     * @return array {status, order_no, credits} status=-1 表示订单不存在
+     * @return array {status, order_no, credits} status=-1 订单不存在; status=-2 验签失败(待确认)
      */
     public function handleReturn(array $params): array
     {
@@ -160,6 +221,25 @@ class PayService
 
         // 写 PaymentLog event=sync(外部副作用降级)
         $this->safeLog($orderNo, 'sync', $params);
+
+        // 验签: 同步跳转参数必须通过签名校验, 否则不信任展示数据
+        try {
+            if (!$this->pay->verifyReturn($params)) {
+                trace('pay_return_verify_fail: order_no=' . $orderNo, 'error');
+                return [
+                    'status'   => -2,
+                    'order_no' => $orderNo,
+                    'credits'  => 0,
+                ];
+            }
+        } catch (\Throwable $e) {
+            trace('pay_return_verify_exception: ' . $e->getMessage(), 'error');
+            return [
+                'status'   => -2,
+                'order_no' => $orderNo,
+                'credits'  => 0,
+            ];
+        }
 
         $order = Order::where('order_no', $orderNo)->find();
         if (!$order) {

@@ -47,6 +47,20 @@ abstract class BaseController
     }
 
     /**
+     * 异常脱敏: trace 记录原始异常信息, 对外返回通用提示
+     *
+     * @param string    $userMessage 对外展示的通用提示
+     * @param \Throwable $e          捕获到的异常
+     * @param string    $logPrefix   日志前缀, 便于检索
+     * @return Response
+     */
+    protected function errorWithLog(string $userMessage, \Throwable $e, string $logPrefix = 'error'): Response
+    {
+        trace($logPrefix . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString(), 'error');
+        return $this->error($userMessage);
+    }
+
+    /**
      * 统一 API 响应格式
      */
     protected function apiResponse(int $code, string $message, mixed $data): Response

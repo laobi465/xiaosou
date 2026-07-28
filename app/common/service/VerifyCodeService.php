@@ -30,6 +30,14 @@ class VerifyCodeService
     public function send(string $email, int $type): array
     {
         try {
+            // 邮箱归一化(小写+去空白), 统一 key 与入库
+            $email = strtolower(trim($email));
+
+            // 邮箱格式校验(移至限流之前, 无效请求不消耗 IP 限流配额)
+            if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                return ['sent' => false, 'reason' => '邮箱格式不正确'];
+            }
+
             $limiter = app(RateLimiter::class);
 
             // 限流: 邮箱维度 60s/N 次
@@ -47,16 +55,11 @@ class VerifyCodeService
                 return ['sent' => false, 'reason' => '发送过于频繁,请稍后再试'];
             }
 
-            // 邮箱格式校验
-            if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-                return ['sent' => false, 'reason' => '邮箱格式不正确'];
-            }
-
             // 生成数字验证码
             $length = (int) config('pan.verify_code.length', 6);
             $code   = $this->generateCode($length);
 
-            // Redis 写入 code 与尝试次数
+            // Redis 写入 code 哈希与尝试次数(与 DB 哈希存储一致)
             $ttl     = (int) config('pan.verify_code.ttl', 300);
             $maxTry  = (int) config('pan.verify_code.max_try', 5);
             $redis   = $this->redis();
@@ -67,7 +70,9 @@ class VerifyCodeService
             $codeKey = 'verify:email:' . $type . ':' . $email;
             $tryKey  = 'verify:try:' . $type . ':' . $email;
 
-            $redis->setex($codeKey, $ttl, $code);
+            // Redis 存哈希值(防 Redis 数据泄露明文验证码)
+            $codeHash = hash('sha256', $code . config('app.key'));
+            $redis->setex($codeKey, $ttl, $codeHash);
             $redis->setex($tryKey, $ttl, (string) $maxTry);
 
             // 入库审计(code 哈希存储)
@@ -101,6 +106,9 @@ class VerifyCodeService
     public function verify(string $email, string $code, int $type): bool
     {
         try {
+            // 邮箱归一化(与 send 保持一致)
+            $email = strtolower(trim($email));
+
             $redis = $this->redis();
             if ($redis === null) {
                 return false;
@@ -114,12 +122,16 @@ class VerifyCodeService
                 return false;
             }
 
-            // 恒等比较,防 timing attack
-            if (!hash_equals((string) $cached, (string) $code)) {
+            // 恒等比较哈希值(防 timing attack), 与 send 中存储的哈希一致
+            $codeHash = hash('sha256', $code . config('app.key'));
+            if (!hash_equals((string) $cached, $codeHash)) {
                 // 错误: 尝试次数 -1
-                $remaining = (int) $redis->decr($tryKey);
-                if ($remaining <= 0) {
-                    $redis->del($codeKey, $tryKey);
+                // 先检查 tryKey 是否存在, key 过期则不操作(避免 decr 创建 -1 值)
+                if ($redis->exists($tryKey)) {
+                    $remaining = (int) $redis->decr($tryKey);
+                    if ($remaining <= 0) {
+                        $redis->del($codeKey, $tryKey);
+                    }
                 }
                 return false;
             }

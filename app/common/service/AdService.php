@@ -87,14 +87,15 @@ class AdService
                 // 4. 按 weight 加权随机抽取(不放回抽样)
                 $picked = $this->weightedSample($placements, $maxCount);
 
-                // 5. 整理输出结构
+                // 5. 整理输出结构(校验 link_url 协议白名单, 过滤非法协议)
                 $result = [];
                 foreach ($picked as $item) {
+                    $linkUrl = $this->sanitizeUrl((string) $item['link_url']);
                     $result[] = [
                         'id'        => (int) $item['id'],
                         'title'     => (string) $item['title'],
                         'image_url' => (string) $item['image_url'],
-                        'link_url'  => (string) $item['link_url'],
+                        'link_url'  => $linkUrl,
                     ];
                 }
             }
@@ -143,13 +144,18 @@ class AdService
     public function click(int $placementId): array
     {
         try {
-            // 查询投放获取 link_url
-            $placement = AdPlacement::where('id', $placementId)->find();
+            // 查询投放: 仅返回上线且在投放时段内的广告
+            $now = date('Y-m-d H:i:s');
+            $placement = AdPlacement::where('id', $placementId)
+                ->where('status', 1)
+                ->where('start_at', '<=', $now)
+                ->where('end_at', '>=', $now)
+                ->find();
             if (!$placement) {
                 return ['link_url' => ''];
             }
 
-            $linkUrl = (string) $placement->link_url;
+            $linkUrl = $this->sanitizeUrl((string) $placement->link_url);
 
             // Redis HINCRBY 累加点击(失败降级,不影响跳转)
             $redis = $this->redis();
@@ -168,6 +174,25 @@ class AdService
             trace('ad_click_error: ' . $e->getMessage(), 'error');
             return ['link_url' => ''];
         }
+    }
+
+    /**
+     * 校验 URL 协议白名单, 仅允许 http/https
+     *
+     * 防 javascript:/data: 等协议注入, 非法协议返回空字符串。
+     *
+     * @param string $url 待校验的 URL
+     * @return string 安全的 URL, 非法则为空字符串
+     */
+    protected function sanitizeUrl(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+        return '';
     }
 
     /**
@@ -223,41 +248,56 @@ class AdService
                 $placementTable = (new AdPlacement())->getTable();
                 $now            = date('Y-m-d H:i:s');
 
+                $failCount = 0;
                 foreach ($placementIds as $placementId) {
                     $placementId = (int) $placementId;
                     $imp         = $impData[$placementId] ?? 0;
                     $click       = $clickData[$placementId] ?? 0;
 
-                    // upsert AdStat(UNIQUE uk_placement_date 触发 ON DUPLICATE KEY UPDATE)
+                    // 单 placementId 的 AdStat upsert + AdPlacement 累加包在事务内(原子性)
                     try {
-                        Db::execute(
-                            'INSERT INTO `' . $statTable . '` (placement_id, stat_date, impressions, clicks, create_time) '
-                            . 'VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE '
-                            . 'impressions = VALUES(impressions), clicks = VALUES(clicks)',
-                            [$placementId, $yesterday, $imp, $click, $now]
-                        );
-                    } catch (\Throwable $e) {
-                        trace('ad_agg_stat_upsert_error pid=' . $placementId . ': ' . $e->getMessage(), 'error');
-                    }
+                        Db::transaction(function () use (
+                            $statTable, $placementTable, $placementId,
+                            $yesterday, $imp, $click, $now
+                        ) {
+                            // upsert AdStat(UNIQUE uk_placement_date 触发 ON DUPLICATE KEY UPDATE)
+                            Db::execute(
+                                'INSERT INTO `' . $statTable . '` (placement_id, stat_date, impressions, clicks, create_time) '
+                                . 'VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE '
+                                . 'impressions = VALUES(impressions), clicks = VALUES(clicks)',
+                                [$placementId, $yesterday, $imp, $click, $now]
+                            );
 
-                    // 同步累加 AdPlacement.impressions/clicks
-                    try {
-                        Db::execute(
-                            'UPDATE `' . $placementTable . '` '
-                            . 'SET impressions = impressions + ?, clicks = clicks + ? WHERE id = ?',
-                            [$imp, $click, $placementId]
-                        );
+                            // 同步累加 AdPlacement.impressions/clicks
+                            Db::execute(
+                                'UPDATE `' . $placementTable . '` '
+                                . 'SET impressions = impressions + ?, clicks = clicks + ? WHERE id = ?',
+                                [$imp, $click, $placementId]
+                            );
+                        });
                     } catch (\Throwable $e) {
-                        trace('ad_agg_placement_incr_error pid=' . $placementId . ': ' . $e->getMessage(), 'error');
+                        $failCount++;
+                        trace('ad_agg_pid_error pid=' . $placementId . ': ' . $e->getMessage(), 'error');
                     }
                 }
-            }
 
-            // 3. 完成后清理 Redis Hash
-            try {
-                $redis->del([$impKey, $clickKey]);
-            } catch (\Throwable $e) {
-                trace('ad_agg_del_error: ' . $e->getMessage(), 'error');
+                // 仅当全部 placementId 处理成功才清理 Redis Hash(防数据丢失)
+                if ($failCount === 0) {
+                    try {
+                        $redis->del([$impKey, $clickKey]);
+                    } catch (\Throwable $e) {
+                        trace('ad_agg_del_error: ' . $e->getMessage(), 'error');
+                    }
+                } else {
+                    trace('ad_agg_partial_fail: fail_count=' . $failCount . ' total=' . count($placementIds) . ', Redis Hash 保留待下次重试', 'warning');
+                }
+            } else {
+                // 无数据也清理空 Hash
+                try {
+                    $redis->del([$impKey, $clickKey]);
+                } catch (\Throwable $e) {
+                    trace('ad_agg_del_error: ' . $e->getMessage(), 'error');
+                }
             }
         } catch (\Throwable $e) {
             trace('aggregate_daily_error: ' . $e->getMessage(), 'error');

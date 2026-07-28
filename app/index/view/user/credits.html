@@ -62,7 +62,7 @@
                         </td>
                         <td class="cell-amount cell-mono">{if condition="$vo.amount >= 0"}+{/if}{$vo.amount}</td>
                         <td class="cell-mono">{$vo.balance_after}</td>
-                        <td class="wrap">{$vo.remark}</td>
+                        <td class="wrap">{$vo.remark|htmlspecialchars}</td>
                     </tr>
                     {/foreach}
                 </tbody>

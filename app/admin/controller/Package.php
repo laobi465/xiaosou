@@ -23,7 +23,7 @@ class Package extends BaseAdminController
             $query->where('status', (int) $status);
         })->order('sort', 'asc')
             ->order('id', 'desc')
-            ->paginate(15, false, ['query' => $this->request->param()]);
+            ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('package/index', [
             'list'   => $list,
@@ -53,7 +53,7 @@ class Package extends BaseAdminController
         try {
             $package = CreditPackage::create($data);
         } catch (\Throwable $e) {
-            return $this->error('新增失败: ' . $e->getMessage());
+            return $this->errorWithLog('新增失败', $e, 'package_create_error');
         }
 
         $this->logAction('package', 'create', (int) $package->id, $data);
@@ -87,7 +87,7 @@ class Package extends BaseAdminController
         try {
             $package->save($data);
         } catch (\Throwable $e) {
-            return $this->error('保存失败: ' . $e->getMessage());
+            return $this->errorWithLog('保存失败', $e, 'package_update_error');
         }
 
         $this->logAction('package', 'update', $id, $data);
@@ -107,7 +107,7 @@ class Package extends BaseAdminController
         try {
             $package->delete();
         } catch (\Throwable $e) {
-            return $this->error('删除失败: ' . $e->getMessage());
+            return $this->errorWithLog('删除失败', $e, 'package_delete_error');
         }
 
         $this->logAction('package', 'delete', $id, ['name' => $package->name]);
@@ -128,7 +128,7 @@ class Package extends BaseAdminController
         try {
             $package->save();
         } catch (\Throwable $e) {
-            return $this->error('操作失败: ' . $e->getMessage());
+            return $this->errorWithLog('操作失败', $e, 'package_toggle_error');
         }
 
         $this->logAction('package', 'toggle', $id, ['status' => $package->status]);

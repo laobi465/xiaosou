@@ -27,7 +27,7 @@ class Crawl extends BaseAdminController
             })->when($enabled !== '' && $enabled !== null, function ($query) use ($enabled) {
                 $query->where('enabled', (int) $enabled);
             })->order('id', 'desc')
-              ->paginate(15, false, ['query' => $this->request->param()]);
+              ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('crawl/index', [
             'list'          => $list,
@@ -59,7 +59,7 @@ class Crawl extends BaseAdminController
         try {
             $task = CrawlTask::create($data);
         } catch (\Throwable $e) {
-            return $this->error('新增失败: ' . $e->getMessage());
+            return $this->errorWithLog('新增失败', $e, 'crawl_create_error');
         }
 
         $this->logAction('crawl', 'create', (int) $task->id, $data);
@@ -94,7 +94,7 @@ class Crawl extends BaseAdminController
         try {
             $task->save($data);
         } catch (\Throwable $e) {
-            return $this->error('保存失败: ' . $e->getMessage());
+            return $this->errorWithLog('保存失败', $e, 'crawl_update_error');
         }
 
         $this->logAction('crawl', 'update', $id, $data);
@@ -114,7 +114,7 @@ class Crawl extends BaseAdminController
         try {
             $task->delete();
         } catch (\Throwable $e) {
-            return $this->error('删除失败: ' . $e->getMessage());
+            return $this->errorWithLog('删除失败', $e, 'crawl_delete_error');
         }
 
         $this->logAction('crawl', 'delete', $id, ['name' => $task->name]);
@@ -137,7 +137,7 @@ class Crawl extends BaseAdminController
             ->when($status !== '' && $status !== null, function ($query) use ($status) {
                 $query->where('status', (int) $status);
             })->order('id', 'desc')
-              ->paginate(15, false, ['query' => $this->request->param()]);
+              ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('crawl/logs', [
             'list'   => $list,
@@ -163,7 +163,7 @@ class Crawl extends BaseAdminController
         try {
             app(CrawlerService::class)->dispatch($task);
         } catch (\Throwable $e) {
-            return $this->error('触发失败: ' . $e->getMessage());
+            return $this->errorWithLog('触发失败', $e, 'crawl_trigger_error');
         }
 
         $this->logAction('crawl', 'trigger', $id, ['task_id' => $id]);

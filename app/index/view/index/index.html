@@ -11,7 +11,7 @@
             <span class="hot-empty">暂无热搜词</span>
         {else/}
             {foreach $hotKeywords as $vo}
-                <a class="hot-tag" href="/search?q={$vo.keyword|urlencode}">{$vo.keyword}</a>
+                <a class="hot-tag" href="/search?q={$vo.keyword|urlencode}">{$vo.keyword|htmlspecialchars}</a>
             {/foreach}
         {/if}
     </div>
@@ -21,8 +21,8 @@
 {if condition="!empty($banners)"}
 <section class="banner-list" data-reveal-group>
     {foreach $banners as $vo}
-        <a class="banner-item" href="/ad/click/{$vo.id}" data-ad-id="{$vo.id}" data-reveal target="_blank" rel="noopener" title="{$vo.title}">
-            <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
+        <a class="banner-item" href="/ad/click/{$vo.id}" data-ad-id="{$vo.id}" data-reveal target="_blank" rel="noopener" title="{$vo.title|htmlspecialchars}">
+            <img src="{$vo.image_url}" alt="{$vo.title|htmlspecialchars}" loading="lazy">
         </a>
     {/foreach}
 </section>
@@ -41,12 +41,12 @@
                 <article class="resource-card" data-reveal>
                     {if condition="!empty($vo['cover'])"}
                         <a class="resource-card-cover" href="/resource/{$vo.id}">
-                            <img src="{$vo.cover}" alt="{$vo.title}" loading="lazy">
+                            <img src="{$vo.cover}" alt="{$vo.title|htmlspecialchars}" loading="lazy">
                         </a>
                     {/if}
                     <div class="resource-card-body">
                         <h3 class="resource-card-title">
-                            <a href="/resource/{$vo.id}">{$vo.title}</a>
+                            <a href="/resource/{$vo.id}">{$vo.title|htmlspecialchars}</a>
                         </h3>
                         <div class="resource-meta">
                             <span class="type-badge t{$vo.resource_type}">

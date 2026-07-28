@@ -91,7 +91,8 @@
         if (str == null) return '';
         return String(str)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     /* ---------- 验证码倒计时 ---------- */

@@ -16,8 +16,8 @@
     <div class="section-body">
         <div class="detail-grid">
             <div class="detail-item"><span class="label">ID</span><span class="value">{$vo.id}</span></div>
-            <div class="detail-item"><span class="label">邮箱</span><span class="value">{$vo.email}</span></div>
-            <div class="detail-item"><span class="label">昵称</span><span class="value">{if condition="$vo.nickname"}{$vo.nickname}{else/}-{/if}</span></div>
+            <div class="detail-item"><span class="label">邮箱</span><span class="value">{$vo.email|htmlspecialchars}</span></div>
+            <div class="detail-item"><span class="label">昵称</span><span class="value">{if condition="$vo.nickname"}{$vo.nickname|htmlspecialchars}{else/}-{/if}</span></div>
             <div class="detail-item"><span class="label">状态</span><span class="value">
                 {if condition="$vo.status == 1"}<span class="badge badge-success">正常</span>
                 {else/}<span class="badge badge-danger">封禁</span>
@@ -100,7 +100,7 @@
                 {foreach $submissions as $s}
                 <tr>
                     <td class="col-id">{$s.id}</td>
-                    <td class="text-ellipsis">{$s.title}</td>
+                    <td class="text-ellipsis">{$s.title|htmlspecialchars}</td>
                     <td>
                         {if condition="$s.status == 0"}<span class="badge badge-warning">待审</span>
                         {elseif condition="$s.status == 1"/}<span class="badge badge-success">通过</span>
@@ -160,7 +160,7 @@
                     </td>
                     <td class="{if condition="$c.amount >= 0"}text-success{else/}text-danger{/if}">{if condition="$c.amount >= 0"}+{/if}{$c.amount}</td>
                     <td>{$c.balance_after}</td>
-                    <td class="text-ellipsis">{if condition="$c.remark"}{$c.remark}{else/}-{/if}</td>
+                    <td class="text-ellipsis">{if condition="$c.remark"}{$c.remark|htmlspecialchars}{else/}-{/if}</td>
                     <td class="nowrap text-small text-muted">{$c.create_time}</td>
                 </tr>
                 {/foreach}

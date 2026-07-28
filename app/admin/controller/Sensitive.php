@@ -25,7 +25,7 @@ class Sensitive extends BaseAdminController
         })->when($status !== '' && $status !== null, function ($query) use ($status) {
             $query->where('status', (int) $status);
         })->order('id', 'desc')
-            ->paginate(15, false, ['query' => $this->request->param()]);
+            ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('sensitive/index', [
             'list'   => $list,
@@ -36,6 +36,9 @@ class Sensitive extends BaseAdminController
 
     /**
      * 新增敏感词
+     *
+     * 安全: 依赖 DB 唯一约束(uk_word)兜底,catch 唯一键异常,
+     * 避免先查重再 create 在并发下产生重复写入。
      */
     public function add()
     {
@@ -49,11 +52,6 @@ class Sensitive extends BaseAdminController
             return $this->error('敏感词不能为空');
         }
 
-        // 去重检查
-        if (SensitiveWord::where('word', $data['word'])->find()) {
-            return $this->error('该敏感词已存在');
-        }
-
         if (!isset($data['status'])) {
             $data['status'] = 1;
         }
@@ -61,7 +59,11 @@ class Sensitive extends BaseAdminController
         try {
             $model = SensitiveWord::create($data);
         } catch (\Throwable $e) {
-            return $this->error('新增失败: ' . $e->getMessage());
+            // 唯一键冲突 → 友好提示;其他异常 → 脱敏
+            if ($this->isDuplicateKeyException($e)) {
+                return $this->error('该敏感词已存在');
+            }
+            return $this->errorWithLog('新增失败,请稍后重试', $e, 'sensitive_create_error');
         }
 
         SensitiveFilter::clearCache();
@@ -92,7 +94,7 @@ class Sensitive extends BaseAdminController
         try {
             $model->save($data);
         } catch (\Throwable $e) {
-            return $this->error('保存失败: ' . $e->getMessage());
+            return $this->errorWithLog('保存失败', $e, 'sensitive_update_error');
         }
 
         SensitiveFilter::clearCache();
@@ -113,7 +115,7 @@ class Sensitive extends BaseAdminController
         try {
             $model->delete();
         } catch (\Throwable $e) {
-            return $this->error('删除失败: ' . $e->getMessage());
+            return $this->errorWithLog('删除失败', $e, 'sensitive_delete_error');
         }
 
         SensitiveFilter::clearCache();
@@ -123,6 +125,11 @@ class Sensitive extends BaseAdminController
 
     /**
      * 批量导入(words 文本域, 每行一个)
+     *
+     * 性能优化:
+     *   - 限制导入条数上限 5000,防止超大请求耗尽资源
+     *   - 先 whereIn 一次取出已存在集合,差集用 insertAll 批量入库,消除 N+1 查询
+     *   - 并发场景下由 DB 唯一约束(uk_word)兜底,catch 唯一键异常
      */
     public function import()
     {
@@ -134,24 +141,65 @@ class Sensitive extends BaseAdminController
         $lines = explode("\n", $words);
         $lines = array_map('trim', $lines);
         $lines = array_filter($lines, fn ($line) => $line !== '');
-        $lines = array_unique($lines);
+        $lines = array_values(array_unique($lines));
 
         if (empty($lines)) {
             return $this->error('未检测到有效词条');
         }
 
-        $inserted = 0;
+        // 限制导入条数上限
+        $maxImport = 5000;
+        if (count($lines) > $maxImport) {
+            return $this->error('单次导入条数不能超过 ' . $maxImport . ' 条');
+        }
+
+        // 一次取出已存在的词条集合,消除 N+1 查询
+        $existing = SensitiveWord::whereIn('word', $lines)->column('word');
+        $existingMap = array_flip($existing);
+
+        // 计算差集(待新增)
+        $newWords = [];
         foreach ($lines as $word) {
-            // 跳过已存在的词
-            if (SensitiveWord::where('word', $word)->find()) {
-                continue;
+            if (!isset($existingMap[$word])) {
+                $newWords[] = $word;
             }
+        }
+
+        $inserted = 0;
+        if (!empty($newWords)) {
+            $now = date('Y-m-d H:i:s');
+            $batch = [];
+            foreach ($newWords as $word) {
+                $batch[] = [
+                    'word'        => $word,
+                    'status'      => 1,
+                    'create_time' => $now,
+                ];
+            }
+
             try {
-                SensitiveWord::create(['word' => $word, 'status' => 1]);
-                $inserted++;
+                // 批量入库
+                $inserted = SensitiveWord::insertAll($batch);
             } catch (\Throwable $e) {
-                // 单条失败不影响其他
-                trace('sensitive_import_item_error: ' . $e->getMessage(), 'error');
+                // 并发场景下可能触发唯一键冲突,降级为逐条插入跳过重复
+                if ($this->isDuplicateKeyException($e)) {
+                    foreach ($newWords as $word) {
+                        try {
+                            SensitiveWord::create([
+                                'word'   => $word,
+                                'status' => 1,
+                            ]);
+                            $inserted++;
+                        } catch (\Throwable $itemE) {
+                            // 单条失败(含重复)跳过
+                            if (!$this->isDuplicateKeyException($itemE)) {
+                                trace('sensitive_import_item_error: ' . $itemE->getMessage(), 'error');
+                            }
+                        }
+                    }
+                } else {
+                    return $this->errorWithLog('导入失败,请稍后重试', $e, 'sensitive_import_error');
+                }
             }
         }
 
@@ -161,5 +209,35 @@ class Sensitive extends BaseAdminController
             'inserted' => $inserted,
         ]);
         return $this->success(['inserted' => $inserted], '导入完成,新增' . $inserted . '条');
+    }
+
+    /**
+     * 判断异常是否为唯一键冲突(MySQL Duplicate entry / SQLSTATE 23000)
+     *
+     * @param \Throwable $e
+     * @return bool
+     */
+    protected function isDuplicateKeyException(\Throwable $e): bool
+    {
+        $msg = $e->getMessage();
+        // MySQL: Duplicate entry 'xxx' for key 'uk_word' (errno 1062, SQLSTATE 23000)
+        if (stripos($msg, 'Duplicate entry') !== false) {
+            return true;
+        }
+        $code = (string) $e->getCode();
+        if ($code === '23000' || $code === '1062') {
+            return true;
+        }
+        // ThinkPHP PDOException 可能将原始异常放在 data 中
+        if (method_exists($e, 'getData')) {
+            $data = $e->getData();
+            if (is_array($data)) {
+                $origin = $data['PDOException'] ?? $data['origin'] ?? null;
+                if ($origin instanceof \Throwable) {
+                    return $this->isDuplicateKeyException($origin);
+                }
+            }
+        }
+        return false;
     }
 }

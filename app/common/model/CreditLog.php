@@ -24,8 +24,7 @@ class CreditLog extends Model
         'type'          => 'int',
         'amount'        => 'int',
         'balance_after' => 'int',
-        'related_id'    => 'int',
-        'admin_id'      => 'int',
+        // related_id / admin_id 可空(签到/注册赠送等无关联订单或管理员), 不强制 int cast 避免 null → 0
     ];
 
     /**

@@ -9,6 +9,7 @@ use app\common\model\CreditLog;
 use app\common\model\Order;
 use app\common\model\User as UserModel;
 use app\common\service\CreditService;
+use app\common\validate\UserValidate;
 use think\facade\Session;
 
 /**
@@ -50,7 +51,7 @@ class User extends BaseController
 
         $logs = CreditLog::where('user_id', $userId)
             ->order('create_time', 'desc')
-            ->paginate(config('pan.page_size', 15));
+            ->paginate(config('pan.page_size.index', 15));
 
         $balance = 0;
         try {
@@ -74,7 +75,7 @@ class User extends BaseController
 
         $orders = Order::where('user_id', $userId)
             ->order('create_time', 'desc')
-            ->paginate(config('pan.page_size', 15));
+            ->paginate(config('pan.page_size.index', 15));
 
         return view('user/orders', [
             'orders' => $orders,
@@ -83,6 +84,9 @@ class User extends BaseController
 
     /**
      * 每日签到(Ajax)
+     *
+     * 幂等由 CreditService::signIn 内部保障(uk_user_date 唯一索引 + 今日已签到检查),
+     * 重复提交返回"今日已签到"提示。
      */
     public function signIn()
     {
@@ -92,8 +96,7 @@ class User extends BaseController
         } catch (BusinessException $e) {
             return $this->error($e->getMessage());
         } catch (\Throwable $e) {
-            trace('user_sign_in_error: ' . $e->getMessage(), 'error');
-            return $this->error('签到失败,请稍后重试');
+            return $this->errorWithLog('签到失败,请稍后重试', $e, 'user_sign_in_error');
         }
 
         return $this->success($result, '签到成功');
@@ -102,34 +105,44 @@ class User extends BaseController
     /**
      * 资料编辑(Ajax)
      * POST: nickname, avatar
+     *
+     * - nickname/avatar 先 trim 再判定是否为空
+     * - 使用 UserValidate profile 场景校验: nickname max:20, avatar 协议白名单(http/https)
+     * - CSRF 由全局 CheckCsrf 中间件保障
      */
     public function profile()
     {
         $userId   = $this->userId();
-        $nickname = (string) $this->request->post('nickname', '');
-        $avatar   = (string) $this->request->post('avatar', '');
+        $nickname = trim((string) $this->request->post('nickname', ''));
+        $avatar   = trim((string) $this->request->post('avatar', ''));
 
-        $update = [];
+        // 仅收集非空字段(空字符串表示不更新)
+        $data = [];
         if ($nickname !== '') {
-            $update['nickname'] = $nickname;
+            $data['nickname'] = $nickname;
         }
         if ($avatar !== '') {
-            $update['avatar'] = $avatar;
+            $data['avatar'] = $avatar;
         }
 
-        if (empty($update)) {
+        if (empty($data)) {
             return $this->error('无可更新内容');
         }
 
-        try {
-            UserModel::where('id', $userId)->update($update);
-        } catch (\Throwable $e) {
-            trace('user_profile_update_error: ' . $e->getMessage(), 'error');
-            return $this->error('资料更新失败');
+        // 校验(profile 场景: nickname max:20, avatar 协议白名单)
+        $validate = new UserValidate();
+        if (!$validate->scene('profile')->check($data)) {
+            return $this->error($validate->getError());
         }
 
-        if (isset($update['nickname'])) {
-            Session::set('nickname', $update['nickname']);
+        try {
+            UserModel::where('id', $userId)->update($data);
+        } catch (\Throwable $e) {
+            return $this->errorWithLog('资料更新失败', $e, 'user_profile_update_error');
+        }
+
+        if (isset($data['nickname'])) {
+            Session::set('nickname', $data['nickname']);
         }
 
         return $this->success([], '资料更新成功');

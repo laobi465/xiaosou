@@ -41,6 +41,12 @@ abstract class AbstractCrawler implements CrawlerInterface
      */
     protected function httpClient(): Client
     {
+        // SSL 证书校验开关, 默认开启(可由 config('pan.crawler.ssl_verify') 关闭)
+        $sslVerify = true;
+        if (function_exists('config')) {
+            $cfg = config('pan.crawler.ssl_verify', true);
+            $sslVerify = $cfg === null ? true : (bool) $cfg;
+        }
         return new Client([
             'timeout'         => 30,
             'connect_timeout' => 10,
@@ -49,7 +55,7 @@ abstract class AbstractCrawler implements CrawlerInterface
                 'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language' => 'zh-CN,zh;q=0.9,en;q=0.8',
             ],
-            'verify'          => false,
+            'verify'          => $sslVerify,
             'http_errors'     => false,
         ]);
     }
@@ -60,6 +66,49 @@ abstract class AbstractCrawler implements CrawlerInterface
     protected function delay(): void
     {
         usleep(random_int(500, 2000) * 1000);
+    }
+
+    /**
+     * 发起 HTTP GET 请求(带指数退避重试与前后延时)
+     *
+     * - 请求前/后均执行 delay(), 节流目标站点
+     * - 失败时按 1/2/4 秒间隔指数退避重试, 共 3 次
+     *
+     * @param string $url 请求地址
+     * @return string|null 响应体文本, 全部失败返回 null
+     */
+    protected function httpGet(string $url): ?string
+    {
+        $maxAttempts = 3;
+        $backoff     = [1, 2, 4]; // 第 1/2 次重试前的退避秒数
+
+        // 请求前延时
+        $this->delay();
+
+        $lastError = null;
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $response = $this->httpClient()->get($url);
+                $body     = (string) $response->getBody();
+                // 请求成功后延时
+                $this->delay();
+                return $body;
+            } catch (GuzzleException $e) {
+                $lastError = $e;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+            }
+
+            // 未达上限则指数退避后重试
+            if ($attempt < $maxAttempts) {
+                sleep($backoff[$attempt - 1] ?? 4);
+            }
+        }
+
+        trace('crawler_http_get_failed: url=' . $url . ' ' . ($lastError ? $lastError->getMessage() : ''), 'error');
+        // 全部失败也延时一次, 保持节流
+        $this->delay();
+        return null;
     }
 
     /**
@@ -166,13 +215,9 @@ abstract class AbstractCrawler implements CrawlerInterface
             return [];
         }
 
-        // 3. 请求搜索 URL
-        try {
-            $response = $this->httpClient()->get($searchUrl);
-            $html = (string) $response->getBody();
-        } catch (GuzzleException $e) {
-            return [];
-        } catch (\Throwable $e) {
+        // 3. 请求搜索 URL(httpGet 内部含指数退避重试与请求前后延时)
+        $html = $this->httpGet($searchUrl);
+        if ($html === null) {
             return [];
         }
 
@@ -187,9 +232,6 @@ abstract class AbstractCrawler implements CrawlerInterface
                 $items[] = new ResourceItem($row);
             }
         }
-
-        // 5. 随机延时
-        $this->delay();
 
         return $items;
     }

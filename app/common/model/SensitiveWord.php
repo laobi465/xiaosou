@@ -24,7 +24,16 @@ class SensitiveWord extends Model
     ];
 
     /**
-     * 查询范围: 启用词
+     * 查询范围: 启用词(语义化,推荐使用)
+     */
+    public function scopeEnabled($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    /**
+     * 查询范围: 启用词(兼容旧调用,语义不精确,推荐使用 scopeEnabled)
+     * @deprecated 请使用 scopeEnabled
      */
     public function scopeNormal($query)
     {

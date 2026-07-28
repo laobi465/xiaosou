@@ -18,16 +18,16 @@
     <form action="/admin/ad/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/ad/placements/{$vo.slot_id}">
         <div class="form-item">
             <label>投放标题 <span class="required">*</span></label>
-            <input type="text" name="title" value="{$vo.title}" required>
+            <input type="text" name="title" value="{$vo.title|htmlspecialchars}" required>
         </div>
         <div class="form-row">
             <div class="form-item">
                 <label>图片地址</label>
-                <input type="text" name="image_url" value="{$vo.image_url}">
+                <input type="text" name="image_url" value="{$vo.image_url|htmlspecialchars}">
             </div>
             <div class="form-item">
                 <label>跳转链接</label>
-                <input type="text" name="link_url" value="{$vo.link_url}">
+                <input type="text" name="link_url" value="{$vo.link_url|htmlspecialchars}">
             </div>
         </div>
         <div class="form-row">

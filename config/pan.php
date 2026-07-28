@@ -11,6 +11,10 @@ return [
         'submit_per_hour'         => 5,    // 资源提交 同用户/小时
         'pay_notify_per_min'      => 100,  // 支付回调 同IP/分钟
         'admin_per_min'           => 300,  // 后台操作 管理员/分钟
+        // Redis 不可用时的降级策略:false=放行(降级,fail-open) true=拒绝(保守,fail-closed)
+        'fail_closed'             => false,
+        // 默认时间窗口(秒),未被路由参数显式指定时使用
+        'default_window'          => 60,
     ],
     // 积分默认值（运行时被 system_configs 覆盖）
     'credit' => [
@@ -23,6 +27,16 @@ return [
     // 订单配置
     'order' => [
         'expire_minutes' => 30,   // 订单过期时间(分钟)
+    ],
+    // 支付回调配置
+    'pay' => [
+        // 异步通知 IP 白名单(逗号分隔, 留空则放行依赖签名校验)
+        'notify_allow_ips' => env('PAY.NOTIFY_ALLOW_IPS', ''),
+    ],
+    // 首页展示配置
+    'index' => [
+        'hot_keywords'  => 10, // 首页热搜词数量
+        'latest_limit'  => 12, // 首页最新资源数量
     ],
     // 验证码配置
     'verify_code' => [
@@ -37,6 +51,19 @@ return [
         'expire'        => 7200,  // 普通会话过期(秒)
         'remember_expire' => 604800, // 记住我过期(7天)
     ],
+    // 安全配置
+    'security' => [
+        // 敏感词 DFA 加载失败时的策略: false=放行(fail-open) true=拒绝(fail-closed)
+        'sensitive_fail_closed' => false,
+    ],
     // 慢请求阈值(毫秒)
     'slow_request_ms' => 1000,
+    // 分页配置
+    'page_size' => [
+        'admin' => 15, // 后台列表默认每页条数
+        'index' => 15, // 前台列表默认每页条数
+        'max'    => 100, // 单次请求允许的最大条数(防止过大分页)
+    ],
+    // 静态资源版本号(更新静态资源后递增以破缓存)
+    'asset_version' => '1.0.1',
 ];

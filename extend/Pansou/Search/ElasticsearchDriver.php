@@ -27,23 +27,24 @@ class ElasticsearchDriver implements SearchDriverInterface
 
     /**
      * {@inheritdoc}
+     *
+     * 注意: ES 驱动尚未实现。原实现静默返回空结果会导致搜索无结果被误判为"无匹配",
+     *      故改为显式抛异常, 避免静默故障。请使用 MysqlFulltextDriver 或补全 ES DSL。
+     *
+     * @throws \RuntimeException 驱动未实现
      */
     public function search(SearchQuery $query): SearchResult
     {
-        // TODO: 完整实现
-        //   1. 构造 ES query DSL(multi_match + filter)
-        //   2. 调用 ES search API
-        //   3. 解析 hits + aggregations
-        //   4. 计算 search_after 游标
-        return new SearchResult();
+        throw new \RuntimeException('ElasticsearchDriver 未实现');
     }
 
     /**
      * 校验 ES 连接
+     *
+     * @throws \RuntimeException 驱动未实现
      */
     public function ping(): bool
     {
-        // TODO: 实现 ES 健康检查
-        return false;
+        throw new \RuntimeException('ElasticsearchDriver 未实现');
     }
 }

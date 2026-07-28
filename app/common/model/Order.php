@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\common\model;
 
+use app\common\enum\OrderStatus;
 use think\Model;
 
 /**
@@ -22,7 +23,7 @@ class Order extends Model
     protected $type = [
         'user_id'    => 'int',
         'package_id' => 'int',
-        'amount'     => 'float',
+        'amount'     => 'decimal',
         'credits'    => 'int',
         'status'     => 'int',
     ];
@@ -52,10 +53,27 @@ class Order extends Model
     }
 
     /**
-     * 查询范围: 已支付(正常完结态)
+     * 查询范围: 已支付(语义化,推荐使用)
+     */
+    public function scopePaid($query)
+    {
+        return $query->where('status', OrderStatus::PAID);
+    }
+
+    /**
+     * 查询范围: 待支付
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', OrderStatus::PENDING);
+    }
+
+    /**
+     * 查询范围: 已支付(兼容旧调用,语义不精确,推荐使用 scopePaid)
+     * @deprecated 请使用 scopePaid
      */
     public function scopeNormal($query)
     {
-        return $query->where('status', 1);
+        return $query->where('status', OrderStatus::PAID);
     }
 }

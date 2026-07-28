@@ -3,15 +3,15 @@
     {/* 个人资料卡片：头像 + 昵称 */}
     <div class="profile-card" data-reveal>
         {if condition="!empty($user['avatar'])"}
-            <img class="profile-avatar" src="{$user.avatar}" alt="{$user.nickname}">
+            <img class="profile-avatar" src="{$user.avatar}" alt="{$user.nickname|htmlspecialchars}">
         {else/}
             <div class="profile-avatar-placeholder" aria-hidden="true">
                 {:mb_substr((string)($user['nickname'] ?? 'U'), 0, 1)}
             </div>
         {/if}
         <div class="profile-info">
-            <h2>{$user.nickname}</h2>
-            <p class="profile-email">{$user.email}</p>
+            <h2>{$user.nickname|htmlspecialchars}</h2>
+            <p class="profile-email">{$user.email|htmlspecialchars}</p>
             <p class="profile-joined">
                 <span class="profile-meta-icon" aria-hidden="true"></span>
                 注册时间：{$user.create_time|substr=0,10}
@@ -45,11 +45,11 @@
         <form class="form" id="profile-form">
             <div class="form-item">
                 <label for="profile-nickname">昵称</label>
-                <input type="text" id="profile-nickname" name="nickname" value="{$user.nickname}" placeholder="请输入昵称">
+                <input type="text" id="profile-nickname" name="nickname" value="{$user.nickname|htmlspecialchars}" placeholder="请输入昵称">
             </div>
             <div class="form-item">
                 <label for="profile-avatar">头像 URL</label>
-                <input type="text" id="profile-avatar" name="avatar" value="{$user.avatar}" placeholder="请输入头像图片地址">
+                <input type="text" id="profile-avatar" name="avatar" value="{$user.avatar|htmlspecialchars}" placeholder="请输入头像图片地址">
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary btn-has-check">

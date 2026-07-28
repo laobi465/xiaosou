@@ -28,6 +28,11 @@ class User extends Model
     ];
 
     /**
+     * 隐藏敏感字段: 密码哈希、软删除标记、IP 地址(序列化时不再暴露)
+     */
+    protected $hidden = ['password', 'delete_time', 'register_ip', 'last_login_ip'];
+
+    /**
      * 一对一: 用户积分余额
      */
     public function credit(): \think\model\relation\HasOne

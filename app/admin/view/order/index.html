@@ -10,12 +10,12 @@
 
 <form class="toolbar" method="get" action="/admin/order" data-reveal>
     <div class="form-item">
-        <input type="text" name="order_no" value="{$order_no}" placeholder="搜索订单号" class="input-sm">
+        <input type="text" name="order_no" value="{$order_no|htmlspecialchars}" placeholder="搜索订单号" class="input-sm">
     </div>
     <div class="form-item">
         <select name="status">
             <option value="">全部状态</option>
-            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>待支付</option>
+            <option value="0" {if condition="$status === '0'"}selected{/if}>待支付</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>已支付</option>
             <option value="2" {if condition="$status == 2"}selected{/if}>已退款</option>
             <option value="3" {if condition="$status == 3"}selected{/if}>已关闭</option>
@@ -48,12 +48,12 @@
                 <td><a href="/admin/order/detail/{$vo.id}">{$vo.order_no}</a></td>
                 <td>
                     {if condition="$vo.user"}
-                    {if condition="$vo.user.nickname"}{$vo.user.nickname}{else/}{$vo.user.email}{/if}
+                    {if condition="$vo.user.nickname"}{$vo.user.nickname|htmlspecialchars}{else/}{$vo.user.email|htmlspecialchars}{/if}
                     {else/}
                     <span class="text-muted">ID:{$vo.user_id}</span>
                     {/if}
                 </td>
-                <td>{if condition="$vo.package"}{$vo.package.name}{else/}-{/if}</td>
+                <td>{if condition="$vo.package"}{$vo.package.name|htmlspecialchars}{else/}-{/if}</td>
                 <td>￥{$vo.amount}</td>
                 <td>{$vo.credits}</td>
                 <td>

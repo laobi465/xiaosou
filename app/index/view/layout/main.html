@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{$csrf_token}">
     <title>网盘资源搜索</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="__CSS__/main.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+    <link rel="stylesheet" href="__CSS__/main.css?v={$Think.config.pan.asset_version}">
 </head>
 <body>
 <header class="site-header">
@@ -22,7 +24,10 @@
             {if condition="$isLogged"}
                 <a href="/user">{$userNickname}</a>
                 <a href="/submit">资源提交</a>
-                <a href="/auth/logout">退出</a>
+                <form method="post" action="/auth/logout" style="display:inline">
+                    <input type="hidden" name="_token" value="{$csrf_token}">
+                    <button type="submit" class="nav-link">退出</button>
+                </form>
             {else/}
                 <a href="/auth/login">登录</a>
                 <a href="/auth/register">注册</a>
@@ -45,6 +50,6 @@
 
 <div class="float-ad-slot" id="float-ad" aria-hidden="true">广告位占位</div>
 
-<script src="__JS__/common.js"></script>
+<script src="__JS__/common.js?v={$Think.config.pan.asset_version}"></script>
 </body>
 </html>

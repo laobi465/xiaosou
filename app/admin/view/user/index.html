@@ -10,13 +10,13 @@
 
 <form class="toolbar" method="get" action="/admin/user" data-reveal>
     <div class="form-item">
-        <input type="text" name="keyword" value="{$keyword}" placeholder="搜索邮箱/昵称" class="input-sm">
+        <input type="text" name="keyword" value="{$keyword|htmlspecialchars}" placeholder="搜索邮箱/昵称" class="input-sm">
     </div>
     <div class="form-item">
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>正常</option>
-            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>封禁</option>
+            <option value="0" {if condition="$status === '0'"}selected{/if}>封禁</option>
         </select>
     </div>
     <div class="form-item toolbar-actions">
@@ -40,8 +40,8 @@
             {foreach $list as $vo}
             <tr>
                 <td class="col-id">{$vo.id}</td>
-                <td>{$vo.email}</td>
-                <td>{if condition="$vo.nickname"}{$vo.nickname}{else/}-{/if}</td>
+                <td>{$vo.email|htmlspecialchars}</td>
+                <td>{if condition="$vo.nickname"}{$vo.nickname|htmlspecialchars}{else/}-{/if}</td>
                 <td>
                     {if condition="$vo.status == 1"}<span class="badge badge-success">正常</span>
                     {else/}<span class="badge badge-danger">封禁</span>

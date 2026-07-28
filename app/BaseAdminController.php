@@ -3,6 +3,7 @@ namespace app;
 
 use think\App;
 use think\facade\Session;
+use think\Response;
 
 /**
  * 后台控制器基类
@@ -64,5 +65,19 @@ abstract class BaseAdminController extends BaseController
             // 日志失败不影响主流程
             trace('admin_log_error: ' . $e->getMessage(), 'error');
         }
+    }
+
+    /**
+     * 异常脱敏: trace 记录原始异常信息,对外返回通用提示
+     *
+     * @param string    $userMessage 对外展示的通用提示
+     * @param \Throwable $e          捕获到的异常
+     * @param string    $logPrefix   日志前缀,便于检索
+     * @return Response
+     */
+    protected function errorWithLog(string $userMessage, \Throwable $e, string $logPrefix = 'admin_error'): Response
+    {
+        trace($logPrefix . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString(), 'error');
+        return $this->error($userMessage);
     }
 }

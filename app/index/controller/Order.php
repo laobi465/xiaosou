@@ -41,7 +41,7 @@ class Order extends BaseController
 
         $orders = OrderModel::where('user_id', $userId)
             ->order('create_time', 'desc')
-            ->paginate(config('pan.page_size', 15));
+            ->paginate(config('pan.page_size.index', 15));
 
         return view('order/my_list', [
             'orders' => $orders,

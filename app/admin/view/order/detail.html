@@ -16,8 +16,8 @@
     <div class="section-body">
         <div class="detail-grid">
             <div class="detail-item"><span class="label">订单号</span><span class="value">{$vo.order_no}</span></div>
-            <div class="detail-item"><span class="label">用户</span><span class="value">{if condition="$vo.user"}{if condition="$vo.user.nickname"}{$vo.user.nickname}{else/}{$vo.user.email}{/if}{else/}ID:{$vo.user_id}{/if}</span></div>
-            <div class="detail-item"><span class="label">套餐</span><span class="value">{if condition="$vo.package"}{$vo.package.name}{else/}-{/if}</span></div>
+            <div class="detail-item"><span class="label">用户</span><span class="value">{if condition="$vo.user"}{if condition="$vo.user.nickname"}{$vo.user.nickname|htmlspecialchars}{else/}{$vo.user.email|htmlspecialchars}{/if}{else/}ID:{$vo.user_id}{/if}</span></div>
+            <div class="detail-item"><span class="label">套餐</span><span class="value">{if condition="$vo.package"}{$vo.package.name|htmlspecialchars}{else/}-{/if}</span></div>
             <div class="detail-item"><span class="label">金额</span><span class="value">￥{$vo.amount}</span></div>
             <div class="detail-item"><span class="label">积分</span><span class="value">{$vo.credits}</span></div>
             <div class="detail-item"><span class="label">状态</span><span class="value">
@@ -32,7 +32,7 @@
             {if condition="$vo.pay_at"}<div class="detail-item"><span class="label">支付时间</span><span class="value">{$vo.pay_at}</span></div>{/if}
             {if condition="$vo.trade_no"}<div class="detail-item"><span class="label">交易号</span><span class="value">{$vo.trade_no}</span></div>{/if}
             {if condition="$vo.refund_at"}<div class="detail-item"><span class="label">退款时间</span><span class="value">{$vo.refund_at}</span></div>{/if}
-            {if condition="$vo.refund_reason"}<div class="detail-item"><span class="label">退款原因</span><span class="value text-danger">{$vo.refund_reason}</span></div>{/if}
+            {if condition="$vo.refund_reason"}<div class="detail-item"><span class="label">退款原因</span><span class="value text-danger">{$vo.refund_reason|htmlspecialchars}</span></div>{/if}
         </div>
     </div>
 </div>
@@ -80,7 +80,7 @@
                     <td class="col-id">{$log.id}</td>
                     <td>{$log.order_no}</td>
                     <td><span class="badge badge-info">{$log.event}</span></td>
-                    <td class="text-ellipsis text-small">{if condition="$log.data"}{$log.data}{else/}{if condition="$log.content"}{$log.content}{else/}-{/if}{/if}</td>
+                    <td class="text-ellipsis text-small">{if condition="$log.data"}{$log.data|htmlspecialchars}{else/}{if condition="$log.content"}{$log.content|htmlspecialchars}{else/}-{/if}{/if}</td>
                     <td class="nowrap text-small text-muted">{$log.create_time}</td>
                 </tr>
                 {/foreach}

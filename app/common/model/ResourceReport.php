@@ -19,12 +19,19 @@ class ResourceReport extends Model
     protected $createTime = 'create_time';
     protected $updateTime = false;
 
+    /**
+     * 字段白名单: 防止误写入不存在的字段(如 type)
+     */
+    protected $field = [
+        'resource_id', 'link_id', 'user_id', 'handler_id',
+        'reason', 'status', 'create_time', 'update_time',
+    ];
+
     protected $type = [
         'resource_id' => 'int',
-        'link_id'     => 'int',
         'user_id'     => 'int',
         'status'      => 'int',
-        'handler_id'  => 'int',
+        // link_id / handler_id 可空(举报未指定具体链接 / 未处理时无 handler), 不强制 int cast 避免 null → 0
     ];
 
     /**
@@ -52,9 +59,11 @@ class ResourceReport extends Model
     }
 
     /**
-     * 查询范围: 待处理(默认未处理态)
+     * 查询范围: 待处理(status=0)
+     * 注意: 举报状态语义为 0待处理 1已确认失效 2已忽略,
+     *       与全项目 status=1 正常态约定不同, 故不提供 scopeNormal。
      */
-    public function scopeNormal($query)
+    public function scopePending($query)
     {
         return $query->where('status', 0);
     }

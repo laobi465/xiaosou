@@ -26,6 +26,12 @@ class ResourceLink extends Model
     ];
 
     /**
+     * 隐藏敏感字段: 提取码、分享链接(序列化时不再暴露)
+     * 需要输出时通过 visible() 临时开放: $link->visible(['extract_code','share_url'])
+     */
+    protected $hidden = ['extract_code', 'share_url'];
+
+    /**
      * 反向关联: 所属资源
      */
     public function resource(): \think\model\relation\BelongsTo
@@ -42,7 +48,16 @@ class ResourceLink extends Model
     }
 
     /**
-     * 查询范围: 有效链接
+     * 查询范围: 有效链接(语义化,推荐使用)
+     */
+    public function scopeValid($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    /**
+     * 查询范围: 有效链接(兼容旧调用,语义不精确,推荐使用 scopeValid)
+     * @deprecated 请使用 scopeValid
      */
     public function scopeNormal($query)
     {

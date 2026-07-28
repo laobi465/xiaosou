@@ -51,7 +51,7 @@
                         <div class="form-item">
                             <label>{$key}</label>
                             {if condition="stripos((string)$key, 'password') !== false || stripos((string)$key, 'secret') !== false"}
-                            <input type="password" name="configs[{$key}]" value="{$value}">
+                            <input type="password" name="configs[{$key}]" value="" placeholder="••••••（留空不修改）" autocomplete="new-password">
                             {else/}
                             <input type="text" name="configs[{$key}]" value="{$value}">
                             {/if}

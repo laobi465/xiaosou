@@ -44,7 +44,16 @@ class AdPlacement extends Model
     }
 
     /**
-     * 查询范围: 上线投放
+     * 查询范围: 上线投放(语义化,推荐使用)
+     */
+    public function scopeOnline($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    /**
+     * 查询范围: 上线投放(兼容旧调用,语义不精确,推荐使用 scopeOnline)
+     * @deprecated 请使用 scopeOnline
      */
     public function scopeNormal($query)
     {

@@ -2,11 +2,12 @@
 // 后台路由
 use think\facade\Route;
 use app\admin\middleware\AdminAuth;
+use app\index\middleware\RateLimit;
 
 // 后台登录(无需鉴权)
 Route::get('/admin/login', '\app\admin\controller\Publics/login');
-Route::post('/admin/login', '\app\admin\controller\Publics/login');
-Route::get('/admin/logout', '\app\admin\controller\Publics/logout');
+Route::post('/admin/login', '\app\admin\controller\Publics/login')->middleware(RateLimit::class, '10');
+Route::post('/admin/logout', '\app\admin\controller\Publics/logout');
 
 // 后台鉴权路由组
 Route::group('admin', function () {

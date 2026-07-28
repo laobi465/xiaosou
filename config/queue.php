@@ -2,7 +2,7 @@
 // 队列配置 - Redis 驱动，含业务通道
 
 return [
-    'default'      => 'redis',
+    'default'      => env('QUEUE_DRIVER', 'redis'),
     'connections'  => [
         'sync'     => ['type' => 'sync'],
         'database' => [
@@ -28,7 +28,7 @@ return [
     ],
     // 失败任务处理
     'failed'       => [
-        'type'  => 'none',
+        'type'  => 'database',
         'table' => 'failed_jobs',
     ],
 ];

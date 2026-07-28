@@ -29,7 +29,7 @@
             <span class="log-file">{$log.file}</span>
             <span class="log-meta">{$log.mtime} · {:($log['size'] >= 1048576 ? round($log['size'] / 1048576, 2) . ' MB' : ($log['size'] >= 1024 ? round($log['size'] / 1024, 2) . ' KB' : $log['size'] . ' B'))}</span>
         </div>
-        <pre class="log-pre">{$log.content}</pre>
+        <pre class="log-pre">{$log.content|htmlspecialchars}</pre>
     </article>
     {/foreach}
 </div>

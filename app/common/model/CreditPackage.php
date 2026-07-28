@@ -20,7 +20,7 @@ class CreditPackage extends Model
     protected $updateTime = 'update_time';
 
     protected $type = [
-        'price'          => 'float',
+        'price'          => 'decimal',
         'credits'        => 'int',
         'bonus'          => 'int',
         'is_recommended' => 'int',
@@ -37,7 +37,16 @@ class CreditPackage extends Model
     }
 
     /**
-     * 查询范围: 上架套餐
+     * 查询范围: 上架套餐(语义化,推荐使用)
+     */
+    public function scopeListed($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    /**
+     * 查询范围: 上架套餐(兼容旧调用,语义不精确,推荐使用 scopeListed)
+     * @deprecated 请使用 scopeListed
      */
     public function scopeNormal($query)
     {

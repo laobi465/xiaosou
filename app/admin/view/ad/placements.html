@@ -30,7 +30,7 @@
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>上线</option>
-            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>下线</option>
+            <option value="0" {if condition="$status === '0'"}selected{/if}>下线</option>
         </select>
     </div>
     <div class="form-item toolbar-actions">
@@ -62,12 +62,12 @@
                 <td class="text-ellipsis">{$vo.title}</td>
                 <td>
                     {if condition="$vo.image_url"}
-                    <a href="{$vo.image_url}" target="_blank">查看</a>
+                    <a href="{$vo.image_url}" target="_blank" rel="noopener noreferrer">查看</a>
                     {else/}<span class="text-muted">-</span>
                     {/if}
                 </td>
                 <td class="text-ellipsis text-small">
-                    {if condition="$vo.link_url"}<a href="{$vo.link_url}" target="_blank">{$vo.link_url}</a>{else/}-{/if}
+                    {if condition="$vo.link_url"}<a href="{$vo.link_url}" target="_blank" rel="noopener noreferrer">{$vo.link_url}</a>{else/}-{/if}
                 </td>
                 <td>{$vo.weight}</td>
                 <td>{$vo.impressions}</td>

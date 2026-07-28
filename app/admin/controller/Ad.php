@@ -20,7 +20,7 @@ class Ad extends BaseAdminController
     public function index()
     {
         $list = AdSlot::order('id', 'asc')
-            ->paginate(15, false, ['query' => $this->request->param()]);
+            ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('ad/index', ['list' => $list]);
     }
@@ -41,7 +41,7 @@ class Ad extends BaseAdminController
             ->when($status !== '' && $status !== null, function ($query) use ($status) {
                 $query->where('status', (int) $status);
             })->order('id', 'desc')
-              ->paginate(15, false, ['query' => $this->request->param()]);
+              ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('ad/placements', [
             'slot'   => $slot,
@@ -81,7 +81,7 @@ class Ad extends BaseAdminController
         try {
             $placement = AdPlacement::create($data);
         } catch (\Throwable $e) {
-            return $this->error('新增失败: ' . $e->getMessage());
+            return $this->errorWithLog('新增失败', $e, 'ad_create_error');
         }
 
         $this->logAction('ad', 'create', (int) $placement->id, $data);
@@ -122,7 +122,7 @@ class Ad extends BaseAdminController
         try {
             $placement->save($data);
         } catch (\Throwable $e) {
-            return $this->error('保存失败: ' . $e->getMessage());
+            return $this->errorWithLog('保存失败', $e, 'ad_update_error');
         }
 
         $this->logAction('ad', 'update', $id, $data);
@@ -141,10 +141,14 @@ class Ad extends BaseAdminController
 
         $list = AdStat::where('placement_id', $id)
             ->order('id', 'desc')
-            ->paginate(15, false, ['query' => $this->request->param()]);
+            ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
-        $totalImpressions = (int) AdStat::where('placement_id', $id)->sum('impressions');
-        $totalClicks      = (int) AdStat::where('placement_id', $id)->sum('clicks');
+        // 单次聚合查询取得曝光/点击总和(避免 N+1 多次扫表)
+        $aggregate = AdStat::where('placement_id', $id)
+            ->field('COALESCE(SUM(impressions),0) AS total_imp, COALESCE(SUM(clicks),0) AS total_clk')
+            ->find();
+        $totalImpressions = $aggregate ? (int) $aggregate['total_imp'] : 0;
+        $totalClicks      = $aggregate ? (int) $aggregate['total_clk'] : 0;
         $ctr              = $totalImpressions > 0
             ? round($totalClicks / $totalImpressions * 100, 2)
             : 0.0;
@@ -172,7 +176,7 @@ class Ad extends BaseAdminController
         try {
             $placement->save();
         } catch (\Throwable $e) {
-            return $this->error('操作失败: ' . $e->getMessage());
+            return $this->errorWithLog('操作失败', $e, 'ad_toggle_error');
         }
 
         $this->logAction('ad', 'toggle', $id, ['status' => $placement->status]);

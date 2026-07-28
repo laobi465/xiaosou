@@ -43,7 +43,7 @@
                     <tr>
                         <td class="cell-mono">{$vo.order_no}</td>
                         <td>
-                            {if condition="$vo->package"}{$vo.package.name}{else/}<span class="text-muted">套餐已删除</span>{/if}
+                            {if condition="$vo->package"}{$vo.package.name|htmlspecialchars}{else/}<span class="text-muted">套餐已删除</span>{/if}
                         </td>
                         <td class="cell-amount cell-mono">¥{$vo.amount}</td>
                         <td class="cell-mono">{$vo.credits}</td>

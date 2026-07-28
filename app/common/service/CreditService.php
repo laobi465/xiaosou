@@ -25,6 +25,11 @@ use app\common\exception\BusinessException;
 class CreditService
 {
     /**
+     * 乐观锁冲突最大重试次数
+     */
+    protected const MAX_RETRY = 4;
+
+    /**
      * 扣减积分(防超扣)
      *
      * @param int         $userId    用户ID
@@ -35,53 +40,60 @@ class CreditService
      * @param int|null    $adminId   管理员ID
      * @return bool
      *
+     * @throws \InvalidArgumentException amount 非正整数
      * @throws CreditNotEnoughException 积分不足
-     * @throws \Exception 并发冲突
+     * @throws \Exception 并发冲突重试耗尽
      */
     public function consume(int $userId, int $amount, int $type, ?int $relatedId = null, string $remark = '', ?int $adminId = null): bool
     {
-        Db::transaction(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
-            // 行锁查询
-            $credit = UserCredit::where('user_id', $userId)->lock(true)->find();
-            if (!$credit) {
-                // 首次使用,创建积分记录(balance=0)
-                $credit = $this->ensureCreditRecord($userId);
-            }
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('amount 必须为正整数');
+        }
 
-            $oldVersion = (int) $credit->version;
-            $balance    = (int) $credit->balance;
+        $this->retryOnConflict(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
+            Db::transaction(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
+                // 行锁查询
+                $credit = UserCredit::where('user_id', $userId)->lock(true)->find();
+                if (!$credit) {
+                    // 首次使用,创建积分记录(balance=0)
+                    $credit = $this->ensureCreditRecord($userId);
+                }
 
-            // 余额校验
-            if ($balance < $amount) {
-                throw new CreditNotEnoughException();
-            }
+                $oldVersion = (int) $credit->version;
+                $balance    = (int) $credit->balance;
 
-            $newBalance      = $balance - $amount;
-            $newTotalConsume = (int) $credit->total_consume + $amount;
+                // 余额校验
+                if ($balance < $amount) {
+                    throw new CreditNotEnoughException();
+                }
 
-            // 乐观锁更新(where user_id + version 双条件)
-            $affected = UserCredit::where('user_id', $userId)
-                ->where('version', $oldVersion)
-                ->update([
-                    'balance'       => $newBalance,
-                    'total_consume' => $newTotalConsume,
-                    'version'       => $oldVersion + 1,
+                $newBalance      = $balance - $amount;
+                $newTotalConsume = (int) $credit->total_consume + $amount;
+
+                // 乐观锁更新(where user_id + version 双条件)
+                $affected = UserCredit::where('user_id', $userId)
+                    ->where('version', $oldVersion)
+                    ->update([
+                        'balance'       => $newBalance,
+                        'total_consume' => $newTotalConsume,
+                        'version'       => $oldVersion + 1,
+                    ]);
+
+                if ($affected === 0) {
+                    throw new \RuntimeException('并发冲突,请重试', 409);
+                }
+
+                // 写流水(amount 负数)
+                CreditLog::create([
+                    'user_id'       => $userId,
+                    'type'          => $type,
+                    'amount'        => -$amount,
+                    'balance_after' => $newBalance,
+                    'related_id'    => $relatedId ?? 0,
+                    'admin_id'      => $adminId ?? 0,
+                    'remark'        => $remark,
                 ]);
-
-            if ($affected === 0) {
-                throw new \Exception('并发冲突,请重试');
-            }
-
-            // 写流水(amount 负数)
-            CreditLog::create([
-                'user_id'       => $userId,
-                'type'          => $type,
-                'amount'        => -$amount,
-                'balance_after' => $newBalance,
-                'related_id'    => $relatedId ?? 0,
-                'admin_id'      => $adminId ?? 0,
-                'remark'        => $remark,
-            ]);
+            });
         });
 
         // 清余额缓存
@@ -101,52 +113,59 @@ class CreditService
      * @param int|null    $adminId   管理员ID
      * @return void
      *
-     * @throws \Exception 并发冲突
+     * @throws \InvalidArgumentException amount 非正整数
+     * @throws \Exception 并发冲突重试耗尽
      */
     public function recharge(int $userId, int $amount, int $type, ?int $relatedId = null, string $remark = '', ?int $adminId = null): void
     {
-        Db::transaction(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
-            // 行锁查询
-            $credit = UserCredit::where('user_id', $userId)->lock(true)->find();
-            if (!$credit) {
-                // 首次使用,创建积分记录
-                $credit = $this->ensureCreditRecord($userId);
-            }
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('amount 必须为正整数');
+        }
 
-            $oldVersion = (int) $credit->version;
-            $newBalance = (int) $credit->balance + $amount;
+        $this->retryOnConflict(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
+            Db::transaction(function () use ($userId, $amount, $type, $relatedId, $remark, $adminId) {
+                // 行锁查询
+                $credit = UserCredit::where('user_id', $userId)->lock(true)->find();
+                if (!$credit) {
+                    // 首次使用,创建积分记录
+                    $credit = $this->ensureCreditRecord($userId);
+                }
 
-            $update = [
-                'balance' => $newBalance,
-                'version' => $oldVersion + 1,
-            ];
+                $oldVersion = (int) $credit->version;
+                $newBalance = (int) $credit->balance + $amount;
 
-            // 充值/退款累加 total_recharge; 奖励类累加 total_reward
-            if (in_array($type, [CreditType::RECHARGE, CreditType::REFUND], true)) {
-                $update['total_recharge'] = (int) $credit->total_recharge + $amount;
-            } elseif (in_array($type, [CreditType::SIGN_IN, CreditType::REGISTER_GIFT, CreditType::SUBMIT_REWARD, CreditType::ADMIN_ADJUST], true)) {
-                $update['total_reward'] = (int) $credit->total_reward + $amount;
-            }
+                $update = [
+                    'balance' => $newBalance,
+                    'version' => $oldVersion + 1,
+                ];
 
-            // 乐观锁更新
-            $affected = UserCredit::where('user_id', $userId)
-                ->where('version', $oldVersion)
-                ->update($update);
+                // 充值/退款累加 total_recharge; 奖励类累加 total_reward
+                if (in_array($type, [CreditType::RECHARGE, CreditType::REFUND], true)) {
+                    $update['total_recharge'] = (int) $credit->total_recharge + $amount;
+                } elseif (in_array($type, [CreditType::SIGN_IN, CreditType::REGISTER_GIFT, CreditType::SUBMIT_REWARD, CreditType::ADMIN_ADJUST], true)) {
+                    $update['total_reward'] = (int) $credit->total_reward + $amount;
+                }
 
-            if ($affected === 0) {
-                throw new \Exception('并发冲突,请重试');
-            }
+                // 乐观锁更新
+                $affected = UserCredit::where('user_id', $userId)
+                    ->where('version', $oldVersion)
+                    ->update($update);
 
-            // 写流水(amount 正数)
-            CreditLog::create([
-                'user_id'       => $userId,
-                'type'          => $type,
-                'amount'        => $amount,
-                'balance_after' => $newBalance,
-                'related_id'    => $relatedId ?? 0,
-                'admin_id'      => $adminId ?? 0,
-                'remark'        => $remark,
-            ]);
+                if ($affected === 0) {
+                    throw new \RuntimeException('并发冲突,请重试', 409);
+                }
+
+                // 写流水(amount 正数)
+                CreditLog::create([
+                    'user_id'       => $userId,
+                    'type'          => $type,
+                    'amount'        => $amount,
+                    'balance_after' => $newBalance,
+                    'related_id'    => $relatedId ?? 0,
+                    'admin_id'      => $adminId ?? 0,
+                    'remark'        => $remark,
+                ]);
+            });
         });
 
         // 清余额缓存
@@ -199,27 +218,28 @@ class CreditService
         $today     = date('Y-m-d');
         $yesterday = date('Y-m-d', strtotime('-1 day'));
 
-        // 今日是否已签到
-        $exists = SignInRecord::where('user_id', $userId)
-            ->where('sign_date', $today)
-            ->find();
-        if ($exists) {
-            throw new BusinessException('今日已签到');
-        }
-
-        // 计算连续天数: 昨日有记录则 +1, 否则 =1
+        // 积分计算: 基础 + 连续7天额外(连续天数需先计算)
+        // 注: 昨日记录查询放在事务外仅为计算连续天数, 实际防重复签到由事务内行锁保证
         $yesterdayRecord = SignInRecord::where('user_id', $userId)
             ->where('sign_date', $yesterday)
             ->find();
         $continuousDays = $yesterdayRecord ? (int) $yesterdayRecord->continuous_days + 1 : 1;
 
-        // 积分计算: 基础 + 连续7天额外
         $amount = (int) config('pan.credit.sign_in');
         if ($continuousDays % 7 === 0) {
             $amount += (int) config('pan.credit.sign_in_continuous');
         }
 
         Db::transaction(function () use ($userId, $amount, $today, $continuousDays) {
+            // 今日是否已签到(事务内行锁防并发重复签到)
+            $exists = SignInRecord::where('user_id', $userId)
+                ->where('sign_date', $today)
+                ->lock(true)
+                ->find();
+            if ($exists) {
+                throw new BusinessException('今日已签到');
+            }
+
             // 签到积分到账
             $this->recharge($userId, $amount, CreditType::SIGN_IN, null, '每日签到');
 
@@ -261,6 +281,38 @@ class CreditService
             ]);
         }
         return $credit;
+    }
+
+    /**
+     * 乐观锁冲突指数退避重试
+     *
+     * 捕获 code=409 的 RuntimeException(乐观锁冲突), 最多重试 MAX_RETRY 次,
+     * 每次重试前 usleep 进行指数退避(1ms, 2ms, 4ms, 8ms), 重试耗尽后抛出原异常。
+     *
+     * @param callable $fn 需重试的闭包(通常内含 Db::transaction)
+     * @return void
+     *
+     * @throws \RuntimeException 重试耗尽后抛出
+     */
+    private function retryOnConflict(callable $fn): void
+    {
+        $attempt = 0;
+        while (true) {
+            try {
+                $fn();
+                return;
+            } catch (\RuntimeException $e) {
+                if ($e->getCode() !== 409) {
+                    throw $e;
+                }
+                $attempt++;
+                if ($attempt > self::MAX_RETRY) {
+                    throw $e;
+                }
+                // 指数退避: 1ms, 2ms, 4ms, 8ms
+                usleep(1000 * (1 << ($attempt - 1)));
+            }
+        }
     }
 
     /**

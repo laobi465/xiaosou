@@ -38,7 +38,7 @@ return [
             // 监听 SQL
             'trigger_sql'     => env('APP.DEBUG', false),
             // 开启字段缓存
-            'fields_cache'    => false,
+            'fields_cache'    => true,
         ],
     ],
 ];

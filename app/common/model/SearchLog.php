@@ -19,7 +19,7 @@ class SearchLog extends Model
     protected $updateTime = false;
 
     protected $type = [
-        'user_id'      => 'int',
+        // user_id 可空(游客搜索), 不强制 int cast 避免 null → 0
         'result_count' => 'int',
         'duration_ms'  => 'int',
     ];

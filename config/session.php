@@ -9,8 +9,8 @@ return [
     'name'           => 'PANSOU_SID',
     'cookie'         => [
         'httponly' => true,
-        'secure'   => false,
-        'samesite' => 'Lax',
+        'secure'   => env('SESSION_SECURE', false),
+        'samesite' => env('SESSION_SAMESITE', 'Lax'),
     ],
     // Redis 连接
     'connection'     => [

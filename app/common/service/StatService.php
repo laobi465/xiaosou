@@ -10,7 +10,6 @@ use app\common\model\SearchLog;
 use app\common\model\CrawlTask;
 use app\common\model\CrawlLog;
 use app\common\model\Submission;
-use Pansou\Search\MysqlFulltextDriver;
 use think\facade\Cache;
 use think\cache\driver\Redis as RedisCacheDriver;
 
@@ -142,7 +141,8 @@ class StatService
         }
 
         try {
-            $searchService = new SearchService(new MysqlFulltextDriver());
+            // 通过容器解析 SearchService(SearchDriverInterface 已在 AppService 中绑定)
+            $searchService = app(SearchService::class);
             $result['hot_keywords'] = $searchService->hotKeywords(10);
         } catch (\Throwable $e) {
             trace('stat_search_hot_keywords_error: ' . $e->getMessage(), 'error');

@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{$csrf_token}">
     <title>后台管理</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="__CSS__/admin.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+    <link rel="stylesheet" href="__CSS__/admin.css?v={$Think.config.pan.asset_version}">
 </head>
 <body>
 <div class="admin-wrapper">
@@ -45,7 +47,10 @@
             </button>
             <span class="topbar-title">控制台</span>
             <nav class="topbar-nav">
-                <a href="/admin/logout">退出</a>
+                <form method="post" action="/admin/logout" style="display:inline">
+                    <input type="hidden" name="_token" value="{$csrf_token}">
+                    <button type="submit" class="nav-link">退出</button>
+                </form>
             </nav>
         </header>
         <div class="admin-content">
@@ -53,6 +58,6 @@
         </div>
     </div>
 </div>
-<script src="__JS__/admin.js"></script>
+<script src="__JS__/admin.js?v={$Think.config.pan.asset_version}"></script>
 </body>
 </html>

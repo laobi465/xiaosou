@@ -13,6 +13,7 @@ use app\common\model\User as UserModel;
 use app\common\model\UserLoginLog;
 use app\common\service\CreditService;
 use app\common\validate\UserValidate;
+use think\facade\Cache;
 
 /**
  * 用户管理
@@ -35,7 +36,7 @@ class User extends BaseAdminController
         })->when($status !== '' && $status !== null, function ($query) use ($status) {
             $query->where('status', (int) $status);
         })->order('id', 'desc')
-            ->paginate(15, false, ['query' => $this->request->param()]);
+            ->paginate(config('pan.page_size.admin', 15), false, ['query' => $this->request->param()]);
 
         return view('user/index', [
             'list'    => $list,
@@ -70,6 +71,8 @@ class User extends BaseAdminController
 
     /**
      * 调整积分(type=1增加/2扣减, CreditService::recharge/consume ADMIN_ADJUST)
+     *
+     * 安全: 显式校验 type ∈ {1,2},非法值兜底报错,避免走入非预期分支。
      */
     public function adjustCredit(int $id)
     {
@@ -91,6 +94,11 @@ class User extends BaseAdminController
         $remark = (string) ($data['remark'] ?? '');
         $adminId = $this->adminId();
 
+        // 显式校验 type,仅允许 1(增加)/2(扣减),其余兜底报错
+        if ($type !== 1 && $type !== 2) {
+            return $this->error('调整类型非法,仅支持 1=增加 2=扣减');
+        }
+
         try {
             $creditService = app(CreditService::class);
             if ($type === 1) {
@@ -107,7 +115,7 @@ class User extends BaseAdminController
         } catch (CreditNotEnoughException $e) {
             return $this->error('用户积分不足');
         } catch (\Throwable $e) {
-            return $this->error('积分调整失败: ' . $e->getMessage());
+            return $this->errorWithLog('积分调整失败,请稍后重试', $e, 'user_adjust_credit_error');
         }
 
         $this->logAction('user', 'adjust_credit', $id, [
@@ -120,6 +128,11 @@ class User extends BaseAdminController
 
     /**
      * 封禁/解封(status 切换)
+     *
+     * 安全:
+     *   - 原子更新 where('status', 当前值)->update,避免并发重复切换
+     *   - 封禁时设置 Redis ban 版本标记(TTL 与会话一致),
+     *     UserAuth 中间件读取该标记后强制下线,实现"封禁即失效当前登录态"
      */
     public function toggle(int $id)
     {
@@ -128,14 +141,37 @@ class User extends BaseAdminController
             return $this->error('用户不存在');
         }
 
-        $user->status = (int) $user->status === 1 ? 0 : 1;
+        $currentStatus = (int) $user->status;
+        $newStatus     = $currentStatus === 1 ? 0 : 1;
+
         try {
-            $user->save();
+            // 原子更新: 仅当 status 仍为预期当前值时才切换
+            $affected = UserModel::where('id', $id)
+                ->where('status', $currentStatus)
+                ->update(['status' => $newStatus]);
+
+            if ($affected !== 1) {
+                // 并发场景下状态已被其他请求变更
+                return $this->error('操作失败,用户状态已变更,请刷新后重试');
+            }
         } catch (\Throwable $e) {
-            return $this->error('操作失败: ' . $e->getMessage());
+            return $this->errorWithLog('操作失败,请稍后重试', $e, 'user_toggle_error');
         }
 
-        $this->logAction('user', 'toggle', $id, ['status' => $user->status]);
-        return $this->success(['status' => $user->status], '操作成功');
+        // 封禁时设置 ban 版本标记; 解封时清除标记
+        // TTL 7200 秒(与会话过期一致),UserAuth 中间件据此强制下线
+        try {
+            if ($newStatus === 0) {
+                Cache::set('user_ban:' . $id, time(), 7200);
+            } else {
+                Cache::delete('user_ban:' . $id);
+            }
+        } catch (\Throwable $e) {
+            // 缓存操作失败不阻塞主流程,记录日志
+            trace('user_ban_cache_error: user_id=' . $id . ' ' . $e->getMessage(), 'error');
+        }
+
+        $this->logAction('user', 'toggle', $id, ['status' => $newStatus]);
+        return $this->success(['status' => $newStatus], '操作成功');
     }
 }
