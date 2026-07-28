@@ -56,6 +56,8 @@
 - 系统组件：`nginx` / `supervisor` / `mysql-client` / `crond` / `composer`
 - 总镜像体积：约 300MB
 
+> **注意**：Docker 部署路径**不走** Web 安装向导 `/install`。MySQL 容器启动时自动执行建库 SQL，app 容器 entrypoint 自动生成 .env 与管理员账号。如需手动重新初始化，请执行 `./docker-deploy.sh reset`。
+
 ---
 
 ## 二、环境准备

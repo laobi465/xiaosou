@@ -88,17 +88,24 @@ composer install
 
 ### 3. 一键安装
 
+**方式一：Web 安装向导（推荐）**
+
+浏览器访问 `http://your-domain.com/install`，按向导完成 5 步：
+1. 环境检测（自动）
+2. 数据库配置（实时测试连接）
+3. Redis 配置（可跳过）
+4. 邮件/支付/管理员配置（SMTP/支付可空）
+5. 执行安装（自动建库建表 + 自检）
+
+安装完成后 /install 自动禁用（基于 install.lock），重装需删除该文件或访问 /install?force=1。
+
+**方式二：命令行安装（备选）**
+
 ```bash
 php think install
 ```
 
-安装命令会交互式引导你完成：
-- 数据库连接配置（host/port/database/username/password）
-- Redis 连接配置（host/port/password）
-- SMTP 邮件配置（host/port/user/pass/from）
-- 彩虹易支付配置（pid/key/api）
-- 管理员账号密码设置
-- 自动生成 `.env`、建库建表、导入种子数据、预热缓存
+交互式引导，含连接预检 + 安装后自检，行为与 Web 向导一致。
 
 ### 4. 启动开发服务器
 

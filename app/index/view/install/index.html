@@ -1,0 +1,176 @@
+{extend name="install/layout"}
+{block name="content"}
+
+<!-- 步骤指示器 -->
+<div class="step-indicator">
+    <div class="step-item active" data-step="1"><span class="step-num">1</span><span class="step-label">环境检测</span></div>
+    <div class="step-item" data-step="2"><span class="step-num">2</span><span class="step-label">数据库</span></div>
+    <div class="step-item" data-step="3"><span class="step-num">3</span><span class="step-label">Redis</span></div>
+    <div class="step-item" data-step="4"><span class="step-num">4</span><span class="step-label">邮件/支付/管理员</span></div>
+    <div class="step-item" data-step="5"><span class="step-num">5</span><span class="step-label">执行安装</span></div>
+</div>
+
+<!-- 步骤 1: 环境检测 -->
+<div class="step-panel active" id="step-1">
+    <h2>环境检测</h2>
+    <p class="step-desc">正在检测服务器环境是否满足安装要求...</p>
+    <div class="env-result" id="env-result">
+        <!-- JS 动态填充 -->
+    </div>
+    <div class="step-actions">
+        <button type="button" class="btn btn-primary" id="btn-recheck">重新检测</button>
+        <button type="button" class="btn btn-primary btn-has-arrow" id="btn-next-1" disabled>下一步</button>
+    </div>
+</div>
+
+<!-- 步骤 2: 数据库配置 -->
+<div class="step-panel" id="step-2">
+    <h2>数据库配置</h2>
+    <p class="step-desc">请填写 MySQL 数据库连接信息</p>
+    <form id="form-database" class="install-form">
+        <div class="form-row">
+            <div class="form-item">
+                <label>数据库主机</label>
+                <input type="text" name="db_host" value="127.0.0.1" required>
+            </div>
+            <div class="form-item">
+                <label>数据库端口</label>
+                <input type="text" name="db_port" value="3306" required>
+            </div>
+        </div>
+        <div class="form-item">
+            <label>数据库名</label>
+            <input type="text" name="db_name" value="pan_search" required>
+        </div>
+        <div class="form-row">
+            <div class="form-item">
+                <label>用户名</label>
+                <input type="text" name="db_user" required>
+            </div>
+            <div class="form-item">
+                <label>密码</label>
+                <input type="password" name="db_password">
+            </div>
+        </div>
+    </form>
+    <div class="step-actions">
+        <button type="button" class="btn btn-ghost" data-prev>上一步</button>
+        <button type="button" class="btn btn-primary btn-has-arrow" id="btn-test-db">测试并下一步</button>
+    </div>
+</div>
+
+<!-- 步骤 3: Redis 配置 -->
+<div class="step-panel" id="step-3">
+    <h2>Redis 配置</h2>
+    <p class="step-desc">请填写 Redis 连接信息，或跳过（后续可手动配置）</p>
+    <form id="form-redis" class="install-form">
+        <div class="form-row">
+            <div class="form-item">
+                <label>Redis 主机</label>
+                <input type="text" name="redis_host" value="127.0.0.1">
+            </div>
+            <div class="form-item">
+                <label>Redis 端口</label>
+                <input type="text" name="redis_port" value="6379">
+            </div>
+        </div>
+        <div class="form-item">
+            <label>Redis 密码（空则回车）</label>
+            <input type="password" name="redis_password">
+        </div>
+    </form>
+    <div class="step-actions">
+        <button type="button" class="btn btn-ghost" data-prev>上一步</button>
+        <button type="button" class="btn btn-ghost" id="btn-skip-redis">跳过</button>
+        <button type="button" class="btn btn-primary btn-has-arrow" id="btn-test-redis">测试并下一步</button>
+    </div>
+</div>
+
+<!-- 步骤 4: 邮件/支付/管理员 -->
+<div class="step-panel" id="step-4">
+    <h2>邮件 / 支付 / 管理员</h2>
+    <p class="step-desc">SMTP 与支付可留空跳过，安装后编辑 .env 补充</p>
+    <form id="form-config" class="install-form">
+        <h3 class="form-section-title">SMTP 邮件（可空）</h3>
+        <div class="form-row">
+            <div class="form-item">
+                <label>SMTP 主机</label>
+                <input type="text" name="smtp_host" value="smtp.qq.com">
+            </div>
+            <div class="form-item">
+                <label>SMTP 端口</label>
+                <input type="text" name="smtp_port" value="465">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-item">
+                <label>用户名（邮箱，空则跳过邮件）</label>
+                <input type="email" name="smtp_user">
+            </div>
+            <div class="form-item">
+                <label>密码 / 授权码</label>
+                <input type="password" name="smtp_pass">
+            </div>
+        </div>
+        <div class="form-item">
+            <label>发件人名称</label>
+            <input type="text" name="smtp_from_name" value="网盘搜索">
+        </div>
+
+        <h3 class="form-section-title">彩虹易支付（可空）</h3>
+        <div class="form-item">
+            <label>商户 PID（空则跳过支付）</label>
+            <input type="text" name="pay_pid">
+        </div>
+        <div class="form-row">
+            <div class="form-item">
+                <label>商户密钥 KEY</label>
+                <input type="password" name="pay_key">
+            </div>
+            <div class="form-item">
+                <label>支付接口地址</label>
+                <input type="text" name="pay_api" value="https://pay.cccdl.com">
+            </div>
+        </div>
+
+        <h3 class="form-section-title">管理员账号</h3>
+        <div class="form-row">
+            <div class="form-item">
+                <label>管理员用户名</label>
+                <input type="text" name="admin_user" value="admin" required>
+            </div>
+            <div class="form-item">
+                <label>管理员密码（至少 6 位）</label>
+                <input type="password" name="admin_password" required minlength="6">
+            </div>
+        </div>
+    </form>
+    <div class="step-actions">
+        <button type="button" class="btn btn-ghost" data-prev>上一步</button>
+        <button type="button" class="btn btn-primary btn-has-arrow" id="btn-save-config">保存并下一步</button>
+    </div>
+</div>
+
+<!-- 步骤 5: 执行安装 -->
+<div class="step-panel" id="step-5">
+    <h2>执行安装</h2>
+    <p class="step-desc">点击开始安装，将自动完成：写 .env → 建库建表 → 导入种子 → 建管理员 → 预热缓存 → 自检</p>
+    <div class="install-progress" id="install-progress">
+        <div class="progress-step" data-stage="env"><span class="progress-mark">[ ]</span> 确认配置</div>
+        <div class="progress-step" data-stage="writeenv"><span class="progress-mark">[ ]</span> 写入 .env</div>
+        <div class="progress-step" data-stage="database"><span class="progress-mark">[ ]</span> 建库建表</div>
+        <div class="progress-step" data-stage="seed"><span class="progress-mark">[ ]</span> 导入种子数据</div>
+        <div class="progress-step" data-stage="admin"><span class="progress-mark">[ ]</span> 创建管理员</div>
+        <div class="progress-step" data-stage="cache"><span class="progress-mark">[ ]</span> 预热缓存</div>
+        <div class="progress-step" data-stage="check"><span class="progress-mark">[ ]</span> 安装后自检</div>
+    </div>
+    <div class="step-actions">
+        <button type="button" class="btn btn-ghost" data-prev>上一步</button>
+        <button type="button" class="btn btn-primary btn-has-arrow" id="btn-run-install">开始安装</button>
+    </div>
+    <div class="install-result" id="install-result" style="display:none">
+        <!-- 安装完成后填充自检报告 + 后续步骤 -->
+    </div>
+</div>
+
+{/block}

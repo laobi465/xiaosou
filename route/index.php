@@ -6,6 +6,12 @@ use app\index\middleware\VisitorLog;
 use app\index\middleware\RateLimit;
 use app\index\middleware\PayIpWhitelist;
 
+// 安装向导(安装完成后基于 install.lock 自动禁用,无需 CSRF/LoadConfig)
+Route::get('/install', '\app\index\controller\Install/index')
+    ->option(['csrf_skip' => true, 'skip_load_config' => true]);
+Route::post('/install/ajax/:step', '\app\index\controller\Install/ajax')
+    ->option(['csrf_skip' => true, 'skip_load_config' => true]);
+
 // 首页
 Route::get('/', '\app\index\controller\Index/index')->middleware(VisitorLog::class);
 

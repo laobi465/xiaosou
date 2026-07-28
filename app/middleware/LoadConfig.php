@@ -21,6 +21,12 @@ class LoadConfig
 
     public function handle(Request $request, Closure $next): Response
     {
+        // 安装向导等路由标记 skip_load_config 时跳过(避免 Redis/DB 未就绪时的无谓连接尝试)
+        $rule = $request->rule();
+        if ($rule !== null && method_exists($rule, 'getOption') && $rule->getOption('skip_load_config', false)) {
+            return $next($request);
+        }
+
         try {
             $this->loadConfigs();
         } catch (\Throwable $e) {
