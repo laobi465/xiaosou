@@ -42,24 +42,25 @@ RUN set -eux \
     && cp /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
-# 编译安装 PHP 扩展
-# 注意：opcache 已内置，只能用 docker-php-ext-enable 启用，不能用 docker-php-ext-install
-RUN set -eux \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" \
-        pdo_mysql \
-        mysqli \
-        gd \
-        bcmath \
-        zip \
-        bz2 \
-        intl \
-        mbstring \
-        pcntl \
-        sockets \
-    && docker-php-ext-enable opcache \
-    && pecl install redis \
-    && docker-php-ext-enable redis
+# 编译安装 PHP 扩展（拆分为独立 RUN 层，便于定位失败 + 利用 Docker 缓存）
+# GD（需要 freetype + jpeg）
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" gd
+
+# 数据库 + 数学
+RUN docker-php-ext-install -j"$(nproc)" pdo_mysql mysqli bcmath
+
+# 压缩 + 国际化 + 多字节
+RUN docker-php-ext-install -j"$(nproc)" zip bz2 intl mbstring
+
+# 进程 + 信号
+RUN docker-php-ext-install -j"$(nproc)" pcntl sockets
+
+# opcache（PHP 8.2 镜像已内置，只需启用）
+RUN docker-php-ext-enable opcache
+
+# Redis（PECL）
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Composer（国内镜像加速）
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
