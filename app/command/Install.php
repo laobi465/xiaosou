@@ -334,7 +334,7 @@ class Install extends Command
 
             // 预热网盘源列表
             if ($this->pdo !== null) {
-                $stmt = $this->pdo->query('SELECT id, code, name FROM pan_sources WHERE status = 1 ORDER BY id');
+                $stmt = $this->pdo->query('SELECT id, code, name FROM pan_sources WHERE enabled = 1 ORDER BY sort, id');
                 $sources = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $redis->set('pansou:pan:sources', json_encode($sources, \JSON_UNESCAPED_UNICODE));
                 $output->writeln('<info>[✓] 网盘源列表已缓存 (' . count($sources) . ' 条)</info>');
