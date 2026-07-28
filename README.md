@@ -160,14 +160,33 @@ chmod +x docker-deploy.sh
 
 ### 方式二：宝塔面板部署
 
-适合已有宝塔面板的服务器，需要手动配置环境。
+适合**已有宝塔面板环境**、不使用 Docker 的服务器。需手动配置 LNMP + Redis，但 `php think install` 向导会自动完成连接预检、建库建表、安装后自检。
 
-请参阅 **[宝塔面板部署教程](docs/宝塔面板部署教程.md)**。
+请参阅 **[宝塔面板部署教程](docs/宝塔面板部署教程.md)**（含 [5 分钟快速入口](docs/宝塔面板部署教程.md#快速入口5-分钟上线)）。
+
+**快速入口（5 步）：**
+
+```bash
+# 1. 宝塔面板添加站点，Git 克隆代码到站点目录
+cd /www/wwwroot/your-domain.com
+git clone https://github.com/laobi465/xiaosou.git .
+
+# 2. 安装 Composer 依赖
+composer install --no-dev --optimize-autoloader
+
+# 3. 设置目录权限 + 运行目录为 /public（宝塔面板操作）
+chmod -R 775 runtime public
+
+# 4. 一键安装（向导自动预检 + 建库 + 自检）
+php think install
+
+# 5. 配置 Nginx 伪静态 + Supervisor + Crontab（见教程）
+```
 
 主要步骤：
 1. 宝塔面板安装 LNMP 环境（PHP 8.2+ / MySQL 8.0 / Redis）
 2. 配置 MySQL `ngram_token_size=2`
-3. 添加站点，运行 `php think install`
+3. 添加站点，运行 `php think install`（含连接预检 + 安装后自检）
 4. 配置 Supervisor 守护队列消费者
 5. 配置 Crontab 定时任务
 6. 配置 SSL 证书
