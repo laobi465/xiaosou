@@ -1,0 +1,57 @@
+<div class="page-title">系统配置</div>
+
+<div class="config-layout">
+    <div class="config-tabs">
+        <a href="/admin/config" class="{if condition="$active eq ''"}active{/if}">全部</a>
+        {foreach $groups as $g}
+        <a href="/admin/config?group={$g}" class="{if condition="$active eq $g"}active{/if}">
+            {if condition="$g eq 'smtp'"}邮件配置
+            {elseif condition="$g eq 'payment'"/}支付配置
+            {elseif condition="$g eq 'site'"/}站点配置
+            {elseif condition="$g eq 'credit'"/}积分配置
+            {elseif condition="$g eq 'security'"/}安全配置
+            {else/}{$g}
+            {/if}
+        </a>
+        {/foreach}
+    </div>
+    <div class="config-content">
+        {foreach $data as $groupName => $items}
+        <div class="panel">
+            <div class="panel-header">
+                <h3>
+                    {if condition="$groupName eq 'smtp'"}邮件配置
+                    {elseif condition="$groupName eq 'payment'"/}支付配置
+                    {elseif condition="$groupName eq 'site'"/}站点配置
+                    {elseif condition="$groupName eq 'credit'"/}积分配置
+                    {elseif condition="$groupName eq 'security'"/}安全配置
+                    {else/}{$groupName}
+                    {/if}
+                </h3>
+            </div>
+            <div class="panel-body">
+                {if condition="empty($items)"}
+                <div class="empty">该分组暂无配置项</div>
+                {else/}
+                <form action="/admin/config/save" method="post" data-action="ajax-form" data-redirect="/admin/config?group={$groupName}">
+                    <input type="hidden" name="group" value="{$groupName}">
+                    {foreach $items as $key => $value}
+                    <div class="form-item">
+                        <label>{$key}</label>
+                        {if condition="stripos((string)$key, 'password') !== false || stripos((string)$key, 'secret') !== false"}
+                        <input type="password" name="configs[{$key}]" value="{$value}">
+                        {else/}
+                        <input type="text" name="configs[{$key}]" value="{$value}">
+                        {/if}
+                    </div>
+                    {/foreach}
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存配置</button>
+                    </div>
+                </form>
+                {/if}
+            </div>
+        </div>
+        {/foreach}
+    </div>
+</div>

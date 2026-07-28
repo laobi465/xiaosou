@@ -1,0 +1,45 @@
+<div class="page-title">编辑网盘源</div>
+
+<div class="form-panel">
+    <form action="/admin/pan_source/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/pan_source">
+        <div class="form-item">
+            <label>名称 <span class="required">*</span></label>
+            <input type="text" name="name" value="{$vo.name}" required>
+        </div>
+        <div class="form-item">
+            <label>代码 <span class="required">*</span></label>
+            <input type="text" name="code" value="{$vo.code}" required>
+        </div>
+        <div class="form-item">
+            <label>采集器类名</label>
+            <input type="text" name="crawler_class" value="{$vo.crawler_class}">
+        </div>
+        <div class="form-item">
+            <label>是否主流</label>
+            <select name="is_mainstream">
+                <option value="1" {if condition="$vo.is_mainstream == 1"}selected{/if}>主流</option>
+                <option value="0" {if condition="$vo.is_mainstream == 0"}selected{/if}>小众</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="enabled">
+                <option value="1" {if condition="$vo.enabled == 1"}selected{/if}>启用</option>
+                <option value="0" {if condition="$vo.enabled == 0"}selected{/if}>禁用</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>排序</label>
+            <input type="number" name="sort" value="{$vo.sort}" min="0">
+            <div class="hint">数值越小越靠前</div>
+        </div>
+        <div class="form-item">
+            <label>API 配置（JSON）</label>
+            <textarea name="api_config">{$vo.api_config}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/pan_source" class="btn">返回</a>
+        </div>
+    </form>
+</div>

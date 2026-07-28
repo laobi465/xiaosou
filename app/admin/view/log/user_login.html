@@ -1,0 +1,61 @@
+<div class="page-title">日志查看</div>
+
+<div class="toolbar" style="gap:4px;">
+    <a href="/admin/log/admin" class="btn btn-sm">管理员操作</a>
+    <a href="/admin/log/user_login" class="btn btn-sm btn-primary">用户登录</a>
+    <a href="/admin/log/payment" class="btn btn-sm">支付日志</a>
+    <a href="/admin/log/exception" class="btn btn-sm">异常日志</a>
+</div>
+
+<form class="toolbar" method="get" action="/admin/log/user_login">
+    <div class="form-item">
+        <input type="number" name="user_id" value="{$user_id}" placeholder="用户 ID" class="input-sm">
+    </div>
+    <div class="form-item">
+        <select name="result">
+            <option value="">全部结果</option>
+            <option value="1" {if condition="$result == 1"}selected{/if}>成功</option>
+            <option value="0" {if condition="$result === 0 || $result === '0'"}selected{/if}>失败</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>用户</th>
+                <th>登录方式</th>
+                <th>结果</th>
+                <th>IP</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>
+                    {if condition="$vo.user"}
+                    {if condition="$vo.user.nickname"}{$vo.user.nickname}{else/}{$vo.user.email}{/if}
+                    {else/}
+                    <span class="text-muted">ID:{$vo.user_id}</span>
+                    {/if}
+                </td>
+                <td>{if condition="$vo.login_type == 1"}验证码{elseif condition="$vo.login_type == 2"/}密码{else/}-{/if}</td>
+                <td>{if condition="$vo.result == 1"}<span class="badge badge-success">成功</span>{else/}<span class="badge badge-danger">失败</span>{/if}</td>
+                <td class="text-small">{$vo.ip}</td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无登录日志</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

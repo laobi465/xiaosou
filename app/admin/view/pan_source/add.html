@@ -1,0 +1,45 @@
+<div class="page-title">新增网盘源</div>
+
+<div class="form-panel">
+    <form action="/admin/pan_source/add" method="post" data-action="ajax-form" data-redirect="/admin/pan_source">
+        <div class="form-item">
+            <label>名称 <span class="required">*</span></label>
+            <input type="text" name="name" required placeholder="如 百度网盘">
+        </div>
+        <div class="form-item">
+            <label>代码 <span class="required">*</span></label>
+            <input type="text" name="code" required placeholder="如 baidu">
+        </div>
+        <div class="form-item">
+            <label>采集器类名</label>
+            <input type="text" name="crawler_class" placeholder="如 Pansou\Crawler\BaiduCrawler">
+        </div>
+        <div class="form-item">
+            <label>是否主流</label>
+            <select name="is_mainstream">
+                <option value="1">主流</option>
+                <option value="0">小众</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="enabled">
+                <option value="1">启用</option>
+                <option value="0">禁用</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>排序</label>
+            <input type="number" name="sort" value="0" min="0">
+            <div class="hint">数值越小越靠前</div>
+        </div>
+        <div class="form-item">
+            <label>API 配置（JSON）</label>
+            <textarea name="api_config" placeholder='{"key": "value"}'></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/pan_source" class="btn">返回</a>
+        </div>
+    </form>
+</div>

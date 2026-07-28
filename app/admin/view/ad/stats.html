@@ -1,0 +1,54 @@
+<div class="page-title">
+    广告统计 - {$placement.title}
+    <a href="/admin/ad/placements/{$placement.slot_id}" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card blue">
+        <span class="stat-label">总曝光</span>
+        <span class="stat-value">{$totalImpressions}</span>
+    </div>
+    <div class="stat-card green">
+        <span class="stat-label">总点击</span>
+        <span class="stat-value">{$totalClicks}</span>
+    </div>
+    <div class="stat-card orange">
+        <span class="stat-label">点击率 (CTR)</span>
+        <span class="stat-value">{$ctr}%</span>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>曝光</th>
+                <th>点击</th>
+                <th>点击率</th>
+                <th>统计时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>{$vo.impressions}</td>
+                <td>{$vo.clicks}</td>
+                <td>
+                    {if condition="$vo.impressions > 0"}
+                    {:round($vo.clicks / $vo.impressions * 100, 2)}%
+                    {else/}
+                    0%
+                    {/if}
+                </td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无统计数据</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

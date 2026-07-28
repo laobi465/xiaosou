@@ -1,0 +1,66 @@
+<div class="page-title">敏感词管理</div>
+
+<form class="toolbar" method="get" action="/admin/sensitive">
+    <div class="form-item">
+        <input type="text" name="word" value="{$word}" placeholder="搜索敏感词" class="input-sm">
+    </div>
+    <div class="form-item">
+        <select name="status">
+            <option value="">全部状态</option>
+            <option value="1" {if condition="$status == 1"}selected{/if}>启用</option>
+            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>禁用</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+        <a href="/admin/sensitive/add" class="btn btn-success btn-sm">新增</a>
+    </div>
+</form>
+
+<div class="panel" style="margin-bottom:16px;">
+    <div class="panel-header"><h3>批量导入</h3></div>
+    <div class="panel-body">
+        <form action="/admin/sensitive/import" method="post" data-action="ajax-form" data-redirect="/admin/sensitive">
+            <div class="form-item">
+                <textarea name="words" placeholder="每行一个敏感词，自动去重"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">批量导入</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>敏感词</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>{$vo.word}</td>
+                <td>
+                    {if condition="$vo.status == 1"}<span class="badge badge-success">启用</span>
+                    {else/}<span class="badge badge-danger">禁用</span>
+                    {/if}
+                </td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+                <td class="col-actions">
+                    <a href="/admin/sensitive/edit/{$vo.id}" class="btn-link">编辑</a>
+                    <a href="/admin/sensitive/delete/{$vo.id}" class="btn-link danger" data-action="confirm-ajax" data-confirm="确认删除该敏感词？">删除</a>
+                </td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无敏感词数据</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

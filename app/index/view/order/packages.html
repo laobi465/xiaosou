@@ -1,0 +1,27 @@
+<section>
+    <div class="page-header"><h1>积分套餐</h1></div>
+    <p class="form-hint" style="margin-bottom:18px">选择套餐充值积分，可用于查看资源完整链接等操作。</p>
+
+    {if condition="empty($packages)"}
+        <div class="empty-tip"><p>暂无可购买的套餐</p></div>
+    {else/}
+        <div class="package-list">
+            {foreach $packages as $vo}
+                <div class="package-card{if condition="$vo.is_recommended == 1"} recommended{/if}">
+                    {if condition="$vo.is_recommended == 1"}
+                        <span class="recommend-tag">推荐</span>
+                    {/if}
+                    <h3>{$vo.name}</h3>
+                    <div class="package-price"><small>¥</small>{$vo.price}</div>
+                    <div class="package-credits">{$vo.credits} 积分</div>
+                    {if condition="$vo.bonus > 0"}
+                        <div class="package-bonus">赠送 {$vo.bonus} 积分</div>
+                    {else/}
+                        <div class="package-bonus">&nbsp;</div>
+                    {/if}
+                    <a href="/pay/create/{$vo.id}" class="btn btn-primary">立即购买</a>
+                </div>
+            {/foreach}
+        </div>
+    {/if}
+</section>

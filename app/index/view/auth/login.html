@@ -4,17 +4,62 @@
         <form id="login-form" class="auth-form">
             <div class="form-item">
                 <label>邮箱</label>
-                <input type="email" name="email" placeholder="请输入邮箱" required>
+                <input type="email" name="email" id="login-email" placeholder="请输入邮箱" required>
             </div>
             <div class="form-item">
                 <label>验证码</label>
                 <div class="code-row">
-                    <input type="text" name="code" placeholder="请输入验证码" required maxlength="6">
-                    <button type="button" id="send-code-btn">发送验证码</button>
+                    <input type="text" name="code" id="login-code" placeholder="请输入验证码" required maxlength="6">
+                    <button type="button" id="send-code-btn" class="btn btn-code">发送验证码</button>
                 </div>
             </div>
-            <button type="submit" class="btn-submit">登录</button>
+            <input type="hidden" name="redirect" id="redirect-input" value="/">
+            <button type="submit" class="btn btn-primary btn-submit">登录</button>
             <p class="auth-link">还没有账号？<a href="/auth/register">立即注册</a></p>
         </form>
     </div>
 </section>
+
+<script>
+(function () {
+    // 读取 redirect 参数
+    var params = new URLSearchParams(location.search);
+    var redirect = params.get('redirect');
+    if (redirect) {
+        document.getElementById('redirect-input').value = decodeURIComponent(redirect);
+    }
+
+    // 发送验证码 (type=2 登录)
+    var sendBtn = document.getElementById('send-code-btn');
+    var emailInput = document.getElementById('login-email');
+    App.bindSendCode(sendBtn, function () { return emailInput.value.trim(); }, 2);
+
+    // 登录提交
+    var form = document.getElementById('login-form');
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var email = emailInput.value.trim();
+        var code = document.getElementById('login-code').value.trim();
+        var redirectVal = document.getElementById('redirect-input').value || '/';
+        if (!email || !code) { App.toast('请填写邮箱和验证码', 'error'); return; }
+        var submitBtn = form.querySelector('button[type=submit]');
+        submitBtn.disabled = true;
+        var oldText = submitBtn.textContent;
+        submitBtn.textContent = '登录中...';
+        try {
+            var res = await App.ajaxPost('/ajax/auth/login', { email: email, code: code, redirect: redirectVal });
+            if (res.code === 0) {
+                App.toast('登录成功', 'success');
+                var url = (res.data && res.data.url) ? res.data.url : redirectVal;
+                setTimeout(function () { location.href = url; }, 500);
+            } else {
+                App.toast(res.message || '登录失败', 'error');
+            }
+        } catch (e) {
+            App.toast('网络异常，请重试', 'error');
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+    });
+})();
+</script>

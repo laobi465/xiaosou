@@ -5,8 +5,44 @@ namespace app\common\crawler;
 
 /**
  * 阿里云盘采集器
+ *
+ * url_pattern: ^https?://www\.alipan\.com/s/ (历史域名 aliyundrive.com 同样兼容)
+ *
+ * crawl() 继承 AbstractCrawler 默认实现;真实采集需登录态,留待后续接入。
  */
 class AliyunCrawler extends AbstractCrawler
 {
-    // TODO: 实现 crawl() / validateUrl() / parseSharePage()
+    /**
+     * 校验阿里云盘分享 URL
+     *
+     * 兼容: alipan.com / aliyundrive.com
+     *
+     * {@inheritdoc}
+     */
+    public function validateUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+        return (bool) preg_match(
+            '#^https?://(?:www\.)?(?:alipan|aliyundrive)\.com/s/#i',
+            $url
+        );
+    }
+
+    /**
+     * 解析阿里云盘分享页 HTML
+     *
+     * 提取 <title> 标签内容。解析失败返回空数组。
+     *
+     * {@inheritdoc}
+     */
+    public function parseSharePage(string $html): array
+    {
+        $title = $this->extractTitleFromHtml($html);
+        if ($title === null) {
+            return [];
+        }
+        return ['title' => $title];
+    }
 }

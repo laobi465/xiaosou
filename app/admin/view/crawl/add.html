@@ -1,0 +1,35 @@
+<div class="page-title">新增采集任务</div>
+
+<div class="form-panel">
+    <form action="/admin/crawl/add" method="post" data-action="ajax-form" data-redirect="/admin/crawl">
+        <div class="form-item">
+            <label>网盘源 ID <span class="required">*</span></label>
+            <input type="number" name="pan_source_id" required min="1" placeholder="请输入网盘源 ID">
+            <div class="hint">可在 <a href="/admin/pan_source" target="_blank">网盘源管理</a> 查看 ID</div>
+        </div>
+        <div class="form-item">
+            <label>任务名称 <span class="required">*</span></label>
+            <input type="text" name="name" required placeholder="如 百度网盘-每日采集">
+        </div>
+        <div class="form-item">
+            <label>采集频率（秒）<span class="required">*</span></label>
+            <input type="number" name="frequency" required min="1" value="3600">
+            <div class="hint">每次采集间隔秒数，如 3600 = 1小时</div>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="enabled">
+                <option value="1">启用</option>
+                <option value="0">禁用</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>采集配置（JSON）</label>
+            <textarea name="config" placeholder='{"keyword": "...", "limit": 100}'></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/crawl" class="btn">返回</a>
+        </div>
+    </form>
+</div>

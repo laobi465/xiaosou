@@ -1,0 +1,163 @@
+<div class="page-title">
+    用户详情
+    <a href="/admin/user" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">基本信息</div>
+    <div class="section-body">
+        <div class="detail-grid">
+            <div class="detail-item"><span class="label">ID</span><span class="value">{$vo.id}</span></div>
+            <div class="detail-item"><span class="label">邮箱</span><span class="value">{$vo.email}</span></div>
+            <div class="detail-item"><span class="label">昵称</span><span class="value">{if condition="$vo.nickname"}{$vo.nickname}{else/}-{/if}</span></div>
+            <div class="detail-item"><span class="label">状态</span><span class="value">
+                {if condition="$vo.status == 1"}<span class="badge badge-success">正常</span>
+                {else/}<span class="badge badge-danger">封禁</span>
+                {/if}
+            </span></div>
+            <div class="detail-item"><span class="label">注册时间</span><span class="value">{$vo.create_time}</span></div>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-item"><span class="label">积分余额</span><span class="value text-success">{if condition="$vo.credit"}{$vo.credit.balance}{else/}0{/if}</span></div>
+            <div class="detail-item"><span class="label">累计充值</span><span class="value">{if condition="$vo.credit"}{$vo.credit.total_recharge}{else/}0{/if}</span></div>
+            <div class="detail-item"><span class="label">累计消耗</span><span class="value">{if condition="$vo.credit"}{$vo.credit.total_consume}{else/}0{/if}</span></div>
+            <div class="detail-item"><span class="label">累计奖励</span><span class="value">{if condition="$vo.credit"}{$vo.credit.total_reward}{else/}0{/if}</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">积分调整</div>
+    <div class="section-body">
+        <form action="/admin/user/adjustCredit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/user/detail/{$vo.id}">
+            <div class="flex gap-8" style="flex-wrap:wrap;align-items:flex-end;">
+                <div class="form-item" style="margin-bottom:0;">
+                    <label>操作类型</label>
+                    <select name="type">
+                        <option value="1">增加积分</option>
+                        <option value="2">扣减积分</option>
+                    </select>
+                </div>
+                <div class="form-item" style="margin-bottom:0;">
+                    <label>数量</label>
+                    <input type="number" name="amount" required min="1" value="0" class="input-sm">
+                </div>
+                <div class="form-item" style="margin-bottom:0;">
+                    <label>备注</label>
+                    <input type="text" name="remark" placeholder="操作备注（选填）">
+                </div>
+                <div class="form-item" style="margin-bottom:0;">
+                    <button type="submit" class="btn btn-warning">执行调整</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">订单记录</div>
+    <div class="section-body" style="padding:0;">
+        <table class="table">
+            <thead><tr><th class="col-id">ID</th><th>订单号</th><th>金额</th><th>积分</th><th>状态</th><th>时间</th></tr></thead>
+            <tbody>
+                {foreach $orders as $o}
+                <tr>
+                    <td class="col-id">{$o.id}</td>
+                    <td><a href="/admin/order/detail/{$o.id}">{$o.order_no}</a></td>
+                    <td>￥{$o.amount}</td>
+                    <td>{$o.credits}</td>
+                    <td>
+                        {if condition="$o.status == 0"}<span class="badge badge-warning">待支付</span>
+                        {elseif condition="$o.status == 1"/}<span class="badge badge-success">已支付</span>
+                        {elseif condition="$o.status == 2"/}<span class="badge badge-danger">已退款</span>
+                        {elseif condition="$o.status == 3"/}<span class="badge badge-secondary">已关闭</span>
+                        {else/}<span class="badge badge-secondary">未知</span>
+                        {/if}
+                    </td>
+                    <td class="nowrap text-small text-muted">{$o.create_time}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+        {if condition="$orders->isEmpty()"}<div class="empty">暂无订单</div>{/if}
+    </div>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">提交记录</div>
+    <div class="section-body" style="padding:0;">
+        <table class="table">
+            <thead><tr><th class="col-id">ID</th><th>标题</th><th>状态</th><th>时间</th></tr></thead>
+            <tbody>
+                {foreach $submissions as $s}
+                <tr>
+                    <td class="col-id">{$s.id}</td>
+                    <td class="text-ellipsis">{$s.title}</td>
+                    <td>
+                        {if condition="$s.status == 0"}<span class="badge badge-warning">待审</span>
+                        {elseif condition="$s.status == 1"/}<span class="badge badge-success">通过</span>
+                        {elseif condition="$s.status == 2"/}<span class="badge badge-danger">驳回</span>
+                        {else/}<span class="badge badge-secondary">未知</span>
+                        {/if}
+                    </td>
+                    <td class="nowrap text-small text-muted">{$s.create_time}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+        {if condition="$submissions->isEmpty()"}<div class="empty">暂无提交</div>{/if}
+    </div>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">登录日志</div>
+    <div class="section-body" style="padding:0;">
+        <table class="table">
+            <thead><tr><th class="col-id">ID</th><th>登录方式</th><th>结果</th><th>IP</th><th>时间</th></tr></thead>
+            <tbody>
+                {foreach $loginLogs as $l}
+                <tr>
+                    <td class="col-id">{$l.id}</td>
+                    <td>{if condition="$l.login_type == 1"}验证码{elseif condition="$l.login_type == 2"/}密码{else/}-{/if}</td>
+                    <td>{if condition="$l.result == 1"}<span class="badge badge-success">成功</span>{else/}<span class="badge badge-danger">失败</span>{/if}</td>
+                    <td>{$l.ip}</td>
+                    <td class="nowrap text-small text-muted">{$l.create_time}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+        {if condition="$loginLogs->isEmpty()"}<div class="empty">暂无登录日志</div>{/if}
+    </div>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">积分流水</div>
+    <div class="section-body" style="padding:0;">
+        <table class="table">
+            <thead><tr><th class="col-id">ID</th><th>类型</th><th>变动</th><th>余额</th><th>备注</th><th>时间</th></tr></thead>
+            <tbody>
+                {foreach $creditLogs as $c}
+                <tr>
+                    <td class="col-id">{$c.id}</td>
+                    <td>
+                        {if condition="$c.type == 1"}充值
+                        {elseif condition="$c.type == 2"/}消耗
+                        {elseif condition="$c.type == 3"/}签到
+                        {elseif condition="$c.type == 4"/}注册赠送
+                        {elseif condition="$c.type == 5"/}提交奖励
+                        {elseif condition="$c.type == 6"/}管理员调整
+                        {elseif condition="$c.type == 7"/}退款
+                        {else/}未知
+                        {/if}
+                    </td>
+                    <td class="{if condition="$c.amount >= 0"}text-success{else/}text-danger{/if}">{if condition="$c.amount >= 0"}+{/if}{$c.amount}</td>
+                    <td>{$c.balance_after}</td>
+                    <td class="text-ellipsis">{if condition="$c.remark"}{$c.remark}{else/}-{/if}</td>
+                    <td class="nowrap text-small text-muted">{$c.create_time}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+        {if condition="$creditLogs->isEmpty()"}<div class="empty">暂无积分流水</div>{/if}
+    </div>
+</div>

@@ -1,0 +1,114 @@
+<section class="search-page">
+    {/* 顶部搜索框 */}
+    <div class="search-box">
+        <form action="/search" method="get">
+            <input type="text" name="q" value="{$q}" placeholder="搜索资源..." autocomplete="off">
+            <button type="submit">搜索</button>
+        </form>
+    </div>
+
+    {/* 筛选栏 */}
+    <div class="search-filter">
+        <form action="/search" method="get" id="search-filter-form">
+            <input type="hidden" name="q" value="{$q}">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>类型</label>
+                    <select name="type">
+                        <option value="0">全部</option>
+                        <option value="1" {if condition="$type == 1"}selected{/if}>影视</option>
+                        <option value="2" {if condition="$type == 2"}selected{/if}>音乐</option>
+                        <option value="3" {if condition="$type == 3"}selected{/if}>软件</option>
+                        <option value="4" {if condition="$type == 4"}selected{/if}>文档</option>
+                        <option value="5" {if condition="$type == 5"}selected{/if}>图片</option>
+                        <option value="6" {if condition="$type == 6"}selected{/if}>压缩包</option>
+                        <option value="7" {if condition="$type == 7"}selected{/if}>其他</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>网盘源</label>
+                    <input type="text" name="sources" value="{$sources}" placeholder="多个用逗号分隔">
+                </div>
+                <div class="filter-item">
+                    <label>大小(MB)</label>
+                    <input type="text" name="size" value="" placeholder="如 10-100">
+                </div>
+                <div class="filter-item">
+                    <label>时间</label>
+                    <input type="text" name="time" value="" placeholder="如 2026-01-01,2026-01-31">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary btn-small">筛选</button>
+                    <a href="/search?q={$q|urlencode}" class="btn btn-small">重置</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {/* 置顶广告 */}
+    {if condition="!empty($ads)"}
+        <div class="ad-top">
+            {foreach $ads as $vo}
+                <div class="ad-slot" data-ad-id="{$vo.id}">
+                    <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
+                        <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
+                    </a>
+                </div>
+            {/foreach}
+        </div>
+    {/if}
+
+    {/* 结果统计 */}
+    <div class="result-stats">
+        共找到 <strong>{$result->total}</strong> 条结果，耗时 {$result->took}ms
+        {if condition="$result->fromCache"}（缓存）{/if}
+    </div>
+
+    {/* 结果列表 */}
+    {if condition="empty($result->list)"}
+        <div class="empty-tip">
+            <p>未找到相关资源</p>
+            <a href="/" class="btn btn-small">返回首页</a>
+        </div>
+    {else/}
+        <div class="result-list">
+            {foreach $result->list as $vo}
+                <div class="result-card">
+                    <div class="result-card-title">
+                        <a href="/resource/{$vo.id}">{$vo.title}</a>
+                    </div>
+                    {if condition="!empty($vo['intro'])"}
+                        <div class="result-card-intro">{$vo.intro}</div>
+                    {/if}
+                    <div class="result-card-meta">
+                        <span class="type-badge t{$vo.resource_type}">
+                            {switch $vo.resource_type}
+                                {case 1}影视{/case}
+                                {case 2}音乐{/case}
+                                {case 3}软件{/case}
+                                {case 4}文档{/case}
+                                {case 5}图片{/case}
+                                {case 6}压缩包{/case}
+                                {default/}其他
+                            {/switch}
+                        </span>
+                        {if condition="!empty($vo['file_size'])"}
+                            <span>{:round($vo['file_size']/1048576,2)} MB</span>
+                        {/if}
+                        {if condition="!empty($vo['file_format'])"}
+                            <span>{$vo.file_format}</span>
+                        {/if}
+                        <span>{$vo.create_time|substr=0,10}</span>
+                    </div>
+                </div>
+            {/foreach}
+        </div>
+
+        {/* 游标分页 */}
+        {if condition="$result->nextCursor > 0"}
+            <div class="pagination">
+                <a class="pagination-next" href="/search?q={$q|urlencode}&amp;type={$type}&amp;sources={$sources|urlencode}&amp;cursor={$result->nextCursor}">下一页</a>
+            </div>
+        {/if}
+    {/if}
+</section>

@@ -1,0 +1,64 @@
+<div class="page-title">积分套餐管理</div>
+
+<form class="toolbar" method="get" action="/admin/package">
+    <div class="form-item">
+        <select name="status">
+            <option value="">全部状态</option>
+            <option value="1" {if condition="$status == 1"}selected{/if}>上架</option>
+            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>下架</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+        <a href="/admin/package/add" class="btn btn-success btn-sm">新增套餐</a>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>名称</th>
+                <th>价格</th>
+                <th>积分</th>
+                <th>赠送</th>
+                <th>推荐</th>
+                <th>状态</th>
+                <th>排序</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>{$vo.name}</td>
+                <td>￥{$vo.price}</td>
+                <td>{$vo.credits}</td>
+                <td>{$vo.bonus}</td>
+                <td>
+                    {if condition="$vo.is_recommended == 1"}<span class="badge badge-info">推荐</span>
+                    {else/}<span class="badge badge-secondary">否</span>
+                    {/if}
+                </td>
+                <td>
+                    {if condition="$vo.status == 1"}<span class="badge badge-success">上架</span>
+                    {else/}<span class="badge badge-danger">下架</span>
+                    {/if}
+                </td>
+                <td>{$vo.sort}</td>
+                <td class="col-actions">
+                    <a href="/admin/package/edit/{$vo.id}" class="btn-link">编辑</a>
+                    <a href="/admin/package/toggle/{$vo.id}" class="btn-link warning" data-action="confirm-ajax" data-confirm="确认切换上下架状态？">{if condition="$vo.status == 1"}下架{else/}上架{/if}</a>
+                    <a href="/admin/package/delete/{$vo.id}" class="btn-link danger" data-action="confirm-ajax" data-confirm="确认删除该套餐？">删除</a>
+                </td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无套餐数据</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

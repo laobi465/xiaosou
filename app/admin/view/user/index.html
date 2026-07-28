@@ -1,0 +1,55 @@
+<div class="page-title">用户管理</div>
+
+<form class="toolbar" method="get" action="/admin/user">
+    <div class="form-item">
+        <input type="text" name="keyword" value="{$keyword}" placeholder="搜索邮箱/昵称" class="input-sm">
+    </div>
+    <div class="form-item">
+        <select name="status">
+            <option value="">全部状态</option>
+            <option value="1" {if condition="$status == 1"}selected{/if}>正常</option>
+            <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>封禁</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>邮箱</th>
+                <th>昵称</th>
+                <th>状态</th>
+                <th>注册时间</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>{$vo.email}</td>
+                <td>{if condition="$vo.nickname"}{$vo.nickname}{else/}-{/if}</td>
+                <td>
+                    {if condition="$vo.status == 1"}<span class="badge badge-success">正常</span>
+                    {else/}<span class="badge badge-danger">封禁</span>
+                    {/if}
+                </td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+                <td class="col-actions">
+                    <a href="/admin/user/detail/{$vo.id}" class="btn-link">详情</a>
+                    <a href="/admin/user/toggle/{$vo.id}" class="btn-link warning" data-action="confirm-ajax" data-confirm="确认切换该用户状态？">{if condition="$vo.status == 1"}封禁{else/}解封{/if}</a>
+                </td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无用户数据</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

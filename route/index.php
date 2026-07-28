@@ -27,6 +27,9 @@ Route::group(function () {
     Route::get('/user', '\app\index\controller\User/index');
     Route::get('/user/credits', '\app\index\controller\User/credits');
     Route::get('/user/orders', '\app\index\controller\User/orders');
+    // 用户中心 Ajax 接口
+    Route::post('/ajax/user/signIn', '\app\index\controller\User/signIn');
+    Route::post('/ajax/user/profile', '\app\index\controller\User/profile');
 })->middleware(UserAuth::class);
 
 // 资源提交(需登录)
@@ -55,3 +58,4 @@ Route::get('/ad/click/:id', '\app\index\controller\Ad/click');
 
 // 公共异步接口
 Route::post('/ajax/report/:id', '\app\index\controller\Ajax/reportResource');
+Route::post('/ajax/adImpression/:id', '\app\index\controller\Ajax/adImpression');

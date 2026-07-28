@@ -1,0 +1,21 @@
+<div class="page-title">新增敏感词</div>
+
+<div class="form-panel">
+    <form action="/admin/sensitive/add" method="post" data-action="ajax-form" data-redirect="/admin/sensitive">
+        <div class="form-item">
+            <label>敏感词 <span class="required">*</span></label>
+            <input type="text" name="word" required placeholder="请输入敏感词">
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1">启用</option>
+                <option value="0">禁用</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/sensitive" class="btn">返回</a>
+        </div>
+    </form>
+</div>

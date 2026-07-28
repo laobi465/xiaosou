@@ -1,0 +1,47 @@
+<div class="page-title">广告位管理</div>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>广告位代码</th>
+                <th>名称</th>
+                <th>最大数量</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td><code>{$vo.code}</code></td>
+                <td>
+                    {if condition="$vo.code == 'home_banner'"}首页 Banner
+                    {elseif condition="$vo.code == 'search_top'"/}搜索结果置顶
+                    {elseif condition="$vo.code == 'detail_popup'"/}详情页弹窗
+                    {elseif condition="$vo.code == 'bottom_float'"/}底部浮动
+                    {else/}{$vo.name}
+                    {/if}
+                </td>
+                <td>{$vo.max_count}</td>
+                <td>
+                    {if condition="$vo.enabled == 1"}<span class="badge badge-success">启用</span>
+                    {else/}<span class="badge badge-danger">禁用</span>
+                    {/if}
+                </td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+                <td class="col-actions">
+                    <a href="/admin/ad/placements/{$vo.id}" class="btn-link">投放列表</a>
+                </td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无广告位数据</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

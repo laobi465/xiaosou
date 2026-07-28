@@ -1,0 +1,65 @@
+<div class="page-title">日志查看</div>
+
+<div class="toolbar" style="gap:4px;">
+    <a href="/admin/log/admin" class="btn btn-sm btn-primary">管理员操作</a>
+    <a href="/admin/log/user_login" class="btn btn-sm">用户登录</a>
+    <a href="/admin/log/payment" class="btn btn-sm">支付日志</a>
+    <a href="/admin/log/exception" class="btn btn-sm">异常日志</a>
+</div>
+
+<form class="toolbar" method="get" action="/admin/log/admin">
+    <div class="form-item">
+        <select name="module">
+            <option value="">全部模块</option>
+            <option value="resource" {if condition="$module eq 'resource'"}selected{/if}>资源</option>
+            <option value="pan_source" {if condition="$module eq 'pan_source'"}selected{/if}>网盘源</option>
+            <option value="crawl" {if condition="$module eq 'crawl'"}selected{/if}>采集</option>
+            <option value="submission" {if condition="$module eq 'submission'"}selected{/if}>提交</option>
+            <option value="user" {if condition="$module eq 'user'"}selected{/if}>用户</option>
+            <option value="order" {if condition="$module eq 'order'"}selected{/if}>订单</option>
+            <option value="package" {if condition="$module eq 'package'"}selected{/if}>套餐</option>
+            <option value="ad" {if condition="$module eq 'ad'"}selected{/if}>广告</option>
+            <option value="config" {if condition="$module eq 'config'"}selected{/if}>配置</option>
+            <option value="sensitive" {if condition="$module eq 'sensitive'"}selected{/if}>敏感词</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <input type="number" name="admin_id" value="{$admin_id}" placeholder="管理员 ID" class="input-sm">
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>管理员</th>
+                <th>模块</th>
+                <th>操作</th>
+                <th>目标ID</th>
+                <th>IP</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td>{if condition="$vo.admin"}{$vo.admin.username}{else/}ID:{$vo.admin_id}{/if}</td>
+                <td><span class="badge badge-info">{$vo.module}</span></td>
+                <td>{$vo.action}</td>
+                <td>{if condition="$vo.target_id"}{$vo.target_id}{else/}-{/if}</td>
+                <td class="text-small">{$vo.ip}</td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无操作日志</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

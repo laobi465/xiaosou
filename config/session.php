@@ -2,7 +2,7 @@
 // Session 配置 - Redis 驱动
 
 return [
-    'type'           => 'redis',
+    'type'           => env('SESSION_DRIVER', 'redis'),
     'prefix'         => env('SECURITY.SESSION_PREFIX', 'pansou_:'),
     'expire'         => 7200,
     'auto_start'     => true,

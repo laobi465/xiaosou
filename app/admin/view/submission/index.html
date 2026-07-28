@@ -1,0 +1,95 @@
+<div class="page-title">用户提交审核</div>
+
+<form class="toolbar" method="get" action="/admin/submission">
+    <div class="form-item">
+        <input type="text" name="keyword" value="{$keyword}" placeholder="搜索标题" class="input-sm">
+    </div>
+    <div class="form-item">
+        <select name="status">
+            <option value="0" {if condition="$status === 0 || $status === '0' || $status === ''"}selected{/if}>待审</option>
+            <option value="1" {if condition="$status == 1"}selected{/if}>已通过</option>
+            <option value="2" {if condition="$status == 2"}selected{/if}>已驳回</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th>标题</th>
+                <th>提交用户</th>
+                <th>网盘源</th>
+                <th>类型</th>
+                <th>分享链接</th>
+                <th>状态</th>
+                <th>提交时间</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $list as $vo}
+            <tr>
+                <td class="col-id">{$vo.id}</td>
+                <td class="text-ellipsis">{$vo.title}</td>
+                <td>
+                    {if condition="$vo.user"}
+                    {if condition="$vo.user.nickname"}{$vo.user.nickname}{else/}{$vo.user.email}{/if}
+                    {else/}
+                    <span class="text-muted">ID:{$vo.user_id}</span>
+                    {/if}
+                </td>
+                <td>
+                    {if condition="$vo.panSource"}
+                    {$vo.panSource.name}
+                    {else/}
+                    <span class="text-muted">-</span>
+                    {/if}
+                </td>
+                <td>
+                    {if condition="$vo.resource_type == 1"}影视
+                    {elseif condition="$vo.resource_type == 2"/}音乐
+                    {elseif condition="$vo.resource_type == 3"/}软件
+                    {elseif condition="$vo.resource_type == 4"/}文档
+                    {elseif condition="$vo.resource_type == 5"/}图片
+                    {elseif condition="$vo.resource_type == 6"/}压缩包
+                    {elseif condition="$vo.resource_type == 7"/}其他
+                    {else/}-
+                    {/if}
+                </td>
+                <td class="text-ellipsis text-small">
+                    {if condition="$vo.share_url"}
+                    <a href="{$vo.share_url}" target="_blank">查看链接</a>
+                    {/if}
+                    {if condition="$vo.extract_code"} 提取码:{$vo.extract_code}{/if}
+                </td>
+                <td>
+                    {if condition="$vo.status == 0"}<span class="badge badge-warning">待审</span>
+                    {elseif condition="$vo.status == 1"/}<span class="badge badge-success">已通过</span>
+                    {elseif condition="$vo.status == 2"/}<span class="badge badge-danger">已驳回</span>
+                    {else/}<span class="badge badge-secondary">未知</span>
+                    {/if}
+                </td>
+                <td class="nowrap text-small text-muted">{$vo.create_time}</td>
+                <td class="col-actions">
+                    {if condition="$vo.status == 0"}
+                    <a href="/admin/submission/approve/{$vo.id}" class="btn-link success" data-action="confirm-ajax" data-confirm="确认审核通过？将通过并奖励积分。">通过</a>
+                    <a href="/admin/submission/reject/{$vo.id}" class="btn-link danger" data-action="prompt-ajax" data-prompt-title="驳回原因" data-prompt-placeholder="请输入驳回原因" data-param-name="reason">驳回</a>
+                    {/if}
+                    {if condition="$vo.resource_id"}
+                    <a href="/admin/resource/edit/{$vo.resource_id}" class="btn-link">查看资源</a>
+                    {/if}
+                </td>
+            </tr>
+            {/foreach}
+        </tbody>
+    </table>
+    {if condition="$list->isEmpty()"}
+    <div class="empty">暂无提交记录</div>
+    {/if}
+</div>
+<div class="pagination">{$list->render()|raw}</div>

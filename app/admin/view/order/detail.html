@@ -1,0 +1,83 @@
+<div class="page-title">
+    订单详情
+    <a href="/admin/order" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
+</div>
+
+<div class="detail-section">
+    <div class="section-header">订单信息</div>
+    <div class="section-body">
+        <div class="detail-grid">
+            <div class="detail-item"><span class="label">订单号</span><span class="value">{$vo.order_no}</span></div>
+            <div class="detail-item"><span class="label">用户</span><span class="value">{if condition="$vo.user"}{if condition="$vo.user.nickname"}{$vo.user.nickname}{else/}{$vo.user.email}{/if}{else/}ID:{$vo.user_id}{/if}</span></div>
+            <div class="detail-item"><span class="label">套餐</span><span class="value">{if condition="$vo.package"}{$vo.package.name}{else/}-{/if}</span></div>
+            <div class="detail-item"><span class="label">金额</span><span class="value">￥{$vo.amount}</span></div>
+            <div class="detail-item"><span class="label">积分</span><span class="value">{$vo.credits}</span></div>
+            <div class="detail-item"><span class="label">状态</span><span class="value">
+                {if condition="$vo.status == 0"}<span class="badge badge-warning">待支付</span>
+                {elseif condition="$vo.status == 1"/}<span class="badge badge-success">已支付</span>
+                {elseif condition="$vo.status == 2"/}<span class="badge badge-danger">已退款</span>
+                {elseif condition="$vo.status == 3"/}<span class="badge badge-secondary">已关闭</span>
+                {else/}<span class="badge badge-secondary">未知</span>
+                {/if}
+            </span></div>
+            <div class="detail-item"><span class="label">创建时间</span><span class="value">{$vo.create_time}</span></div>
+            {if condition="$vo.pay_at"}<div class="detail-item"><span class="label">支付时间</span><span class="value">{$vo.pay_at}</span></div>{/if}
+            {if condition="$vo.trade_no"}<div class="detail-item"><span class="label">交易号</span><span class="value">{$vo.trade_no}</span></div>{/if}
+            {if condition="$vo.refund_at"}<div class="detail-item"><span class="label">退款时间</span><span class="value">{$vo.refund_at}</span></div>{/if}
+            {if condition="$vo.refund_reason"}<div class="detail-item"><span class="label">退款原因</span><span class="value text-danger">{$vo.refund_reason}</span></div>{/if}
+        </div>
+    </div>
+</div>
+
+{if condition="$vo.status == 0"}
+<div class="detail-section">
+    <div class="section-header">手动补单</div>
+    <div class="section-body">
+        <form action="/admin/order/manualComplete/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/order/detail/{$vo.id}">
+            <div class="flex gap-8" style="flex-wrap:wrap;align-items:flex-end;">
+                <div class="form-item" style="margin-bottom:0;">
+                    <label>交易号 <span class="required">*</span></label>
+                    <input type="text" name="trade_no" required placeholder="支付平台交易号">
+                </div>
+                <div class="form-item" style="margin-bottom:0;">
+                    <button type="submit" class="btn btn-success">确认补单</button>
+                </div>
+            </div>
+            <div class="hint mt-10">补单后将标记为已支付并为用户充入 {$vo.credits} 积分</div>
+        </form>
+    </div>
+</div>
+{/if}
+
+{if condition="$vo.status == 1"}
+<div class="detail-section">
+    <div class="section-header">退款处理</div>
+    <div class="section-body">
+        <div class="flex gap-8" style="align-items:center;">
+            <span>退款将扣回用户 {$vo.credits} 积分</span>
+            <a href="/admin/order/refund/{$vo.id}" class="btn btn-danger btn-sm" data-action="prompt-ajax" data-prompt-title="退款原因" data-prompt-placeholder="请输入退款原因" data-param-name="refund_reason" data-confirm="确认退款？">发起退款</a>
+        </div>
+    </div>
+</div>
+{/if}
+
+<div class="detail-section">
+    <div class="section-header">支付日志</div>
+    <div class="section-body" style="padding:0;">
+        <table class="table">
+            <thead><tr><th class="col-id">ID</th><th>订单号</th><th>事件</th><th>内容</th><th>时间</th></tr></thead>
+            <tbody>
+                {foreach $paymentLogs as $log}
+                <tr>
+                    <td class="col-id">{$log.id}</td>
+                    <td>{$log.order_no}</td>
+                    <td><span class="badge badge-info">{$log.event}</span></td>
+                    <td class="text-ellipsis text-small">{if condition="$log.data"}{$log.data}{else/}{if condition="$log.content"}{$log.content}{else/}-{/if}{/if}</td>
+                    <td class="nowrap text-small text-muted">{$log.create_time}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+        {if condition="$paymentLogs->isEmpty()"}<div class="empty">暂无支付日志</div>{/if}
+    </div>
+</div>

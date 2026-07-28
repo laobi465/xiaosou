@@ -1,0 +1,51 @@
+<div class="page-title">编辑资源</div>
+
+<div class="form-panel">
+    <form action="/admin/resource/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/resource">
+        <div class="form-item">
+            <label>标题 <span class="required">*</span></label>
+            <input type="text" name="title" value="{$vo.title}" required>
+        </div>
+        <div class="form-item">
+            <label>封面地址</label>
+            <input type="text" name="cover" value="{$vo.cover}">
+        </div>
+        <div class="form-item">
+            <label>简介</label>
+            <textarea name="intro">{$vo.intro}</textarea>
+        </div>
+        <div class="form-item">
+            <label>资源类型 <span class="required">*</span></label>
+            <select name="resource_type">
+                <option value="1" {if condition="$vo.resource_type == 1"}selected{/if}>影视</option>
+                <option value="2" {if condition="$vo.resource_type == 2"}selected{/if}>音乐</option>
+                <option value="3" {if condition="$vo.resource_type == 3"}selected{/if}>软件</option>
+                <option value="4" {if condition="$vo.resource_type == 4"}selected{/if}>文档</option>
+                <option value="5" {if condition="$vo.resource_type == 5"}selected{/if}>图片</option>
+                <option value="6" {if condition="$vo.resource_type == 6"}selected{/if}>压缩包</option>
+                <option value="7" {if condition="$vo.resource_type == 7"}selected{/if}>其他</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>文件大小（字节）</label>
+            <input type="number" name="file_size" value="{$vo.file_size}" min="0">
+        </div>
+        <div class="form-item">
+            <label>文件格式</label>
+            <input type="text" name="file_format" value="{$vo.file_format}">
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1" {if condition="$vo.status == 1"}selected{/if}>正常</option>
+                <option value="0" {if condition="$vo.status == 0"}selected{/if}>失效</option>
+                <option value="2" {if condition="$vo.status == 2"}selected{/if}>待审</option>
+                <option value="3" {if condition="$vo.status == 3"}selected{/if}>驳回</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/resource" class="btn">返回</a>
+        </div>
+    </form>
+</div>

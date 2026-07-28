@@ -1,0 +1,171 @@
+<section class="detail-page">
+    {/* 资源头部信息 */}
+    <div class="detail-header">
+        {if condition="!empty($resource['cover'])"}
+            <img class="detail-cover" src="{$resource.cover}" alt="{$resource.title}">
+        {/if}
+        <div class="detail-info">
+            <h1>{$resource.title}</h1>
+            <div class="detail-meta">
+                <span class="type-badge t{$resource.resource_type}">
+                    {switch $resource.resource_type}
+                        {case 1}影视{/case}
+                        {case 2}音乐{/case}
+                        {case 3}软件{/case}
+                        {case 4}文档{/case}
+                        {case 5}图片{/case}
+                        {case 6}压缩包{/case}
+                        {default/}其他
+                    {/switch}
+                </span>
+                {if condition="!empty($resource['file_size'])"}
+                    <span>大小：{:round($resource['file_size']/1048576,2)} MB</span>
+                {/if}
+                {if condition="!empty($resource['file_format'])"}
+                    <span>格式：{$resource.file_format}</span>
+                {/if}
+                <span>浏览：{$resource.view_count}</span>
+                <span>更新：{$resource.create_time|substr=0,10}</span>
+            </div>
+            {if condition="!empty($resource['intro'])"}
+                <div class="detail-intro">{$resource.intro}</div>
+            {/if}
+        </div>
+    </div>
+
+    {/* 网盘来源列表 */}
+    <div class="detail-block">
+        <h3>网盘来源</h3>
+        {if condition="empty($linkSources)"}
+            <p style="color:#999">暂无可用来源</p>
+        {else/}
+            <div class="link-list">
+                {foreach $linkSources as $vo}
+                    <div class="link-item">
+                        <span class="link-source">{$vo.pan_source}</span>
+                        <button type="button" class="btn btn-primary btn-small view-link-btn" data-link-id="{$vo.id}">查看完整链接</button>
+                    </div>
+                {/foreach}
+            </div>
+            <p class="form-hint" style="margin-top:10px">查看完整链接需扣除积分，请确认后点击。</p>
+        {/if}
+    </div>
+
+    {/* 广告位 */}
+    {if condition="!empty($ads)"}
+        <div class="detail-block">
+            <h3>推广</h3>
+            {foreach $ads as $vo}
+                <div class="ad-slot" data-ad-id="{$vo.id}" style="margin-bottom:8px">
+                    <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
+                        <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
+                    </a>
+                </div>
+            {/foreach}
+        </div>
+    {/if}
+
+    {/* 相关推荐 */}
+    {if condition="!empty($related)"}
+        <div class="detail-block">
+            <h3>相关推荐</h3>
+            <div class="related-list">
+                {foreach $related as $vo}
+                    <div class="related-item">
+                        <a href="/resource/{$vo.id}">{$vo.title}</a>
+                        <span style="color:#999;font-size:12px;margin-left:8px">{$vo.create_time|substr=0,10}</span>
+                    </div>
+                {/foreach}
+            </div>
+        </div>
+    {/if}
+
+    {/* 失效举报 */}
+    <div class="detail-block">
+        <h3>资源失效举报</h3>
+        <form class="report-form" id="report-form" data-resource-id="{$resource.id}">
+            <textarea name="reason" placeholder="请描述失效原因，如：链接已失效、内容违规等" required></textarea>
+            <div>
+                <button type="submit" class="btn btn-primary">提交举报</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+(function () {
+    // 查看完整链接
+    document.querySelectorAll('.view-link-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+            var linkId = btn.getAttribute('data-link-id');
+            if (!linkId) { return; }
+            if (!confirm('查看完整链接将扣除积分，是否继续？')) { return; }
+            btn.disabled = true;
+            var oldText = btn.textContent;
+            btn.textContent = '加载中...';
+            try {
+                var res = await App.ajaxPost('/ajax/resource/viewLink/' + linkId, {});
+                if (res.code === 0) {
+                    var d = res.data || {};
+                    var html = '<div class="link-result">完整链接：<code>' + escapeHtml(d.share_url || '') + '</code>';
+                    if (d.extract_code) {
+                        html += '　提取码：<code>' + escapeHtml(d.extract_code) + '</code>';
+                    }
+                    html += '</div>';
+                    btn.closest('.link-item').insertAdjacentHTML('beforeend', html);
+                    btn.textContent = '已查看';
+                    App.toast('查看成功', 'success');
+                } else if (res.code === 1002) {
+                    // ajaxPost 已处理跳转
+                } else if (res.code === 3001) {
+                    App.toast('积分不足，请前往充值', 'error');
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                } else {
+                    App.toast(res.message || '查看失败', 'error');
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                }
+            } catch (e) {
+                App.toast('网络异常，请重试', 'error');
+                btn.disabled = false;
+                btn.textContent = oldText;
+            }
+        });
+    });
+
+    // 举报表单
+    var reportForm = document.getElementById('report-form');
+    if (reportForm) {
+        reportForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var rid = reportForm.getAttribute('data-resource-id');
+            var reason = reportForm.querySelector('[name=reason]').value.trim();
+            if (!reason) { App.toast('请填写举报原因', 'error'); return; }
+            var submitBtn = reportForm.querySelector('button[type=submit]');
+            submitBtn.disabled = true;
+            var oldText = submitBtn.textContent;
+            submitBtn.textContent = '提交中...';
+            try {
+                var res = await App.ajaxPost('/ajax/report/' + rid, { reason: reason });
+                if (res.code === 0) {
+                    App.toast('举报已提交', 'success');
+                    reportForm.reset();
+                } else {
+                    App.toast(res.message || '提交失败', 'error');
+                }
+            } catch (e) {
+                App.toast('网络异常，请重试', 'error');
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = oldText;
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+})();
+</script>

@@ -3,13 +3,19 @@ declare(strict_types=1);
 
 namespace app\command;
 
+use app\common\service\PayService;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
 
 /**
  * 订单超时关闭
- * 定时关闭超过 expire_minutes 未支付的订单
+ *
+ * 扫描 orders 表中 status=pending 且 expire_at < now 的订单,
+ * 批量关闭并记录支付日志。过期阈值由 config('pan.order.expire_minutes') 驱动。
+ *
+ * 适用于 crontab 每分钟执行:
+ *   * * * * * php think order:close
  */
 class OrderClose extends Command
 {
@@ -21,8 +27,8 @@ class OrderClose extends Command
 
     protected function execute(Input $input, Output $output)
     {
-        // TODO: 查询 orders 表 status=pending 且 create_time < now - expire_minutes
-        //       批量更新 status=closed, 记录日志
-        $output->writeln('<info>order:close - TODO: 订单超时关闭逻辑待实现</info>');
+        $count = app(PayService::class)->closeExpiredOrders();
+
+        $output->writeln('<info>已关闭 ' . $count . ' 个过期订单</info>');
     }
 }

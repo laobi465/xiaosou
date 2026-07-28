@@ -1,21 +1,45 @@
 <div class="dashboard">
     <h2>仪表盘</h2>
+
     <div class="stat-cards">
-        <div class="stat-card">
-            <span class="stat-label">今日搜索</span>
-            <span class="stat-value">--</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">今日订单</span>
-            <span class="stat-value">--</span>
-        </div>
-        <div class="stat-card">
+        <div class="stat-card blue">
             <span class="stat-label">资源总量</span>
-            <span class="stat-value">--</span>
+            <span class="stat-value">{$stat.resource.total}</span>
+            <span class="stat-sub">今日新增 {$stat.resource.today_new} · 待审 {$stat.resource.pending_review}</span>
         </div>
-        <div class="stat-card">
-            <span class="stat-label">新增用户</span>
-            <span class="stat-value">--</span>
+        <div class="stat-card green">
+            <span class="stat-label">用户总数</span>
+            <span class="stat-value">{$stat.user.total}</span>
+            <span class="stat-sub">今日新增 {$stat.user.today_new} · 活跃 {$stat.user.active}</span>
+        </div>
+        <div class="stat-card orange">
+            <span class="stat-label">今日搜索</span>
+            <span class="stat-value">{$stat.search.today_count}</span>
+            <span class="stat-sub">
+                {foreach $stat.search.hot_keywords as $kw}
+                <span class="badge badge-info">{if condition="is_array($kw)"}{$kw.keyword}({$kw.count}){else/}{$kw}{/if}</span>
+                {/foreach}
+            </span>
+        </div>
+        <div class="stat-card green">
+            <span class="stat-label">今日订单</span>
+            <span class="stat-value">{$stat.order.today_count}</span>
+            <span class="stat-sub">收入 ￥{$stat.order.today_revenue}</span>
+        </div>
+        <div class="stat-card blue">
+            <span class="stat-label">采集任务</span>
+            <span class="stat-value">{$stat.crawl.enabled_count}</span>
+            <span class="stat-sub">今日成功 {$stat.crawl.today_success} · 失败 {$stat.crawl.today_fail}</span>
+        </div>
+        <div class="stat-card orange">
+            <span class="stat-label">待审提交</span>
+            <span class="stat-value">{$stat.submission.pending_count}</span>
+            <span class="stat-sub"><a href="/admin/submission">去审核 →</a></span>
+        </div>
+        <div class="stat-card red">
+            <span class="stat-label">广告曝光</span>
+            <span class="stat-value">{$stat.ad.today_impressions}</span>
+            <span class="stat-sub">点击 {$stat.ad.today_clicks}</span>
         </div>
     </div>
 </div>

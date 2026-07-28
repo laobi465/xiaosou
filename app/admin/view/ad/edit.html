@@ -1,0 +1,45 @@
+<div class="page-title">
+    编辑投放
+    <a href="/admin/ad/placements/{$vo.slot_id}" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
+</div>
+
+<div class="form-panel">
+    <form action="/admin/ad/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/ad/placements/{$vo.slot_id}">
+        <div class="form-item">
+            <label>投放标题 <span class="required">*</span></label>
+            <input type="text" name="title" value="{$vo.title}" required>
+        </div>
+        <div class="form-item">
+            <label>图片地址</label>
+            <input type="text" name="image_url" value="{$vo.image_url}">
+        </div>
+        <div class="form-item">
+            <label>跳转链接</label>
+            <input type="text" name="link_url" value="{$vo.link_url}">
+        </div>
+        <div class="form-item">
+            <label>开始时间</label>
+            <input type="text" name="start_at" value="{$vo.start_at}" placeholder="YYYY-MM-DD HH:MM:SS">
+        </div>
+        <div class="form-item">
+            <label>结束时间</label>
+            <input type="text" name="end_at" value="{$vo.end_at}" placeholder="YYYY-MM-DD HH:MM:SS">
+        </div>
+        <div class="form-item">
+            <label>权重</label>
+            <input type="number" name="weight" value="{$vo.weight}" min="0">
+            <div class="hint">数值越大展示概率越高</div>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1" {if condition="$vo.status == 1"}selected{/if}>上线</option>
+                <option value="0" {if condition="$vo.status == 0"}selected{/if}>下线</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/ad/placements/{$vo.slot_id}" class="btn">返回</a>
+        </div>
+    </form>
+</div>

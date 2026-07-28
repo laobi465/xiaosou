@@ -1,0 +1,45 @@
+<div class="page-title">新增积分套餐</div>
+
+<div class="form-panel">
+    <form action="/admin/package/add" method="post" data-action="ajax-form" data-redirect="/admin/package">
+        <div class="form-item">
+            <label>套餐名称 <span class="required">*</span></label>
+            <input type="text" name="name" required placeholder="如 100积分包">
+        </div>
+        <div class="form-item">
+            <label>价格（元）<span class="required">*</span></label>
+            <input type="number" name="price" required step="0.01" min="0" value="0">
+        </div>
+        <div class="form-item">
+            <label>积分数量 <span class="required">*</span></label>
+            <input type="number" name="credits" required min="0" value="0">
+        </div>
+        <div class="form-item">
+            <label>赠送积分</label>
+            <input type="number" name="bonus" min="0" value="0">
+        </div>
+        <div class="form-item">
+            <label>是否推荐</label>
+            <select name="is_recommended">
+                <option value="0">否</option>
+                <option value="1">推荐</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1">上架</option>
+                <option value="0">下架</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>排序</label>
+            <input type="number" name="sort" value="0" min="0">
+            <div class="hint">数值越小越靠前</div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/package" class="btn">返回</a>
+        </div>
+    </form>
+</div>

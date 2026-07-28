@@ -1,0 +1,63 @@
+<section class="user-center">
+    {/* 积分余额 */}
+    <div class="credit-balance">
+        <div>
+            <div class="balance-label">积分余额</div>
+            <div class="balance-num">{$balance}</div>
+        </div>
+        <a href="/order/packages" class="btn btn-small" style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">去充值</a>
+    </div>
+
+    {/* 导航 */}
+    <div class="user-tabs">
+        <a href="/user">个人资料</a>
+        <a href="/user/credits" class="active">积分流水</a>
+        <a href="/user/orders">我的订单</a>
+        <a href="/submit/myList">我的提交</a>
+        <a href="/order/packages">充值套餐</a>
+    </div>
+
+    <div class="page-header"><h1>积分流水</h1></div>
+
+    {/* 流水列表 */}
+    {if condition="$logs->isEmpty()"}
+        <div class="empty-tip"><p>暂无积分流水记录</p></div>
+    {else/}
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>类型</th>
+                        <th>变动数量</th>
+                        <th>变更后余额</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {foreach $logs as $vo}
+                    <tr>
+                        <td>{$vo.create_time|substr=0,16}</td>
+                        <td>
+                            {switch $vo.type}
+                                {case 1}<span class="badge badge-success">充值</span>{/case}
+                                {case 2}<span class="badge badge-danger">消耗</span>{/case}
+                                {case 3}<span class="badge badge-info">签到</span>{/case}
+                                {case 4}<span class="badge badge-info">注册赠送</span>{/case}
+                                {case 5}<span class="badge badge-info">提交奖励</span>{/case}
+                                {case 6}<span class="badge badge-warning">管理员调整</span>{/case}
+                                {case 7}<span class="badge badge-warning">退款</span>{/case}
+                                {default/}<span class="badge badge-default">未知</span>
+                            {/switch}
+                        </td>
+                        <td>{if condition="$vo.amount >= 0"}+{/if}{$vo.amount}</td>
+                        <td>{$vo.balance_after}</td>
+                        <td class="wrap">{$vo.remark}</td>
+                    </tr>
+                    {/foreach}
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">{$logs->render()|raw}</div>
+    {/if}
+</section>

@@ -1,0 +1,50 @@
+<div class="page-title">新增资源</div>
+
+<div class="form-panel">
+    <form action="/admin/resource/add" method="post" data-action="ajax-form" data-redirect="/admin/resource">
+        <div class="form-item">
+            <label>标题 <span class="required">*</span></label>
+            <input type="text" name="title" required placeholder="请输入资源标题">
+        </div>
+        <div class="form-item">
+            <label>封面地址</label>
+            <input type="text" name="cover" placeholder="封面图片 URL">
+        </div>
+        <div class="form-item">
+            <label>简介</label>
+            <textarea name="intro" placeholder="资源简介"></textarea>
+        </div>
+        <div class="form-item">
+            <label>资源类型 <span class="required">*</span></label>
+            <select name="resource_type">
+                <option value="1">影视</option>
+                <option value="2">音乐</option>
+                <option value="3">软件</option>
+                <option value="4">文档</option>
+                <option value="5">图片</option>
+                <option value="6">压缩包</option>
+                <option value="7">其他</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>文件大小（字节）</label>
+            <input type="number" name="file_size" value="0" min="0">
+        </div>
+        <div class="form-item">
+            <label>文件格式</label>
+            <input type="text" name="file_format" placeholder="如 mp4, pdf, zip">
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1">正常</option>
+                <option value="0">失效</option>
+                <option value="2">待审</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/resource" class="btn">返回</a>
+        </div>
+    </form>
+</div>

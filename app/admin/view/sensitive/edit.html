@@ -1,0 +1,21 @@
+<div class="page-title">编辑敏感词</div>
+
+<div class="form-panel">
+    <form action="/admin/sensitive/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/sensitive">
+        <div class="form-item">
+            <label>敏感词 <span class="required">*</span></label>
+            <input type="text" name="word" value="{$vo.word}" required>
+        </div>
+        <div class="form-item">
+            <label>状态</label>
+            <select name="status">
+                <option value="1" {if condition="$vo.status == 1"}selected{/if}>启用</option>
+                <option value="0" {if condition="$vo.status == 0"}selected{/if}>禁用</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/admin/sensitive" class="btn">返回</a>
+        </div>
+    </form>
+</div>
