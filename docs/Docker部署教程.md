@@ -57,6 +57,8 @@
 - 总镜像体积：约 300MB
 
 > **注意**：Docker 部署路径**不走** Web 安装向导 `/install`。MySQL 容器启动时自动执行建库 SQL，app 容器 entrypoint 自动生成 .env 与管理员账号。如需手动重新初始化，请执行 `./docker-deploy.sh reset`。
+>
+> **SMTP 邮件 / 彩虹易支付配置说明**：Docker 部署通过 `.env.docker` 环境变量注入（容器内为 `.env`），**不走后台 system_configs 表**。这样保证容器无状态、可重建。如需修改：编辑宿主机 `.env.docker` 后执行 `./docker-deploy.sh restart`。登录后台 `/admin → 系统配置` 修改的 SMTP/支付配置仅写入容器内 MySQL，重建容器（`reset` 或删除卷）会丢失，建议优先使用 `.env.docker`。
 
 ---
 

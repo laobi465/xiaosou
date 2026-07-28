@@ -17,8 +17,9 @@ use Pansou\Helper\SignatureHelper;
  *
  * 配置来源(优先级):
  *   1. 构造方法传入的 config 数组
- *   2. config/pay.php 的 caihong 节
- *   3. env: PAY.CAIHONG_PID / PAY.CAIHONG_KEY / PAY.CAIHONG_API / PAY.NOTIFY_URL / PAY.RETURN_URL
+ *   2. system_configs 表 payment 分组(后台 /admin/config 可在线修改,即时生效)
+ *   3. config/pay.php 的 caihong 节
+ *   4. env: PAY.CAIHONG_PID / PAY.CAIHONG_KEY / PAY.CAIHONG_API / PAY.NOTIFY_URL / PAY.RETURN_URL
  */
 class CaihongPay
 {
@@ -251,18 +252,44 @@ class CaihongPay
     }
 
     /**
-     * 读取配置(config 优先,env 兜底)
+     * 读取配置(system_configs 优先,config 次之,env 兜底)
+     *
+     * 优先级:
+     *   1. system_configs 表 payment 分组(后台 /admin/config 在线修改即时生效)
+     *   2. config/pay.php 的 caihong 节
+     *   3. env PAY.*
+     *
+     * key 映射(ConfigService payment 白名单):
+     *   pay.caihong.pid        → system_configs.key = caihong_pid
+     *   pay.caihong.key        → system_configs.key = caihong_key
+     *   pay.caihong.api        → system_configs.key = caihong_api
+     *   pay.caihong.notify_url → system_configs.key = notify_url
+     *   pay.caihong.return_url → system_configs.key = return_url
      */
     protected function readConfig(string $name, string $envKey, string $configKey): string
     {
-        // config/pay.php 优先
+        // 1. system_configs 优先(后台 /admin/config 可在线修改)
+        // 显式映射, 避免 str_replace 把 pay.caihong.pid 错误转成 pid(实际 key 是 caihong_pid)
+        $sysKey = $this->mapToSystemConfigKey($configKey);
+        try {
+            if (class_exists(\app\common\service\ConfigService::class)) {
+                $val = app(\app\common\service\ConfigService::class)->get($sysKey);
+                if ($val !== null && $val !== '') {
+                    return (string) $val;
+                }
+            }
+        } catch (\Throwable $e) {
+            // 降级: 容器未就绪 / DB 未初始化 / ConfigService 异常等, 走 config()/env()
+        }
+
+        // 2. config/pay.php(原逻辑)
         if (function_exists('config')) {
             $val = config($configKey);
             if ($val !== null && $val !== '') {
                 return (string) $val;
             }
         }
-        // env 兜底
+        // 3. env 兜底(原逻辑)
         if (function_exists('env')) {
             $val = env($envKey);
             if ($val !== null && $val !== '') {
@@ -270,5 +297,21 @@ class CaihongPay
             }
         }
         return '';
+    }
+
+    /**
+     * config() 点分 key → system_configs 表 key 映射
+     * 与 ConfigService::WHITELIST['payment'] 保持一致
+     */
+    protected function mapToSystemConfigKey(string $configKey): string
+    {
+        static $map = [
+            'pay.caihong.pid'        => 'caihong_pid',
+            'pay.caihong.key'        => 'caihong_key',
+            'pay.caihong.api'        => 'caihong_api',
+            'pay.caihong.notify_url' => 'notify_url',
+            'pay.caihong.return_url' => 'return_url',
+        ];
+        return $map[$configKey] ?? $configKey;
     }
 }

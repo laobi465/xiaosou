@@ -83,11 +83,33 @@ class MailService
         $purpose     = $purposes[$type] ?? '身份验证';
         $ttl         = (int) config('pan.verify_code.ttl', 300);
         $ttlMinutes  = max(1, (int) ceil($ttl / 60));
-        $fromName    = (string) (env('MAIL.SMTP_FROM_NAME') ?? '网盘搜索');
+        // 优先读 system_configs(后台 /admin/config 在线修改即时生效), 降级 .env, 再降级默认值
+        $fromName    = $this->resolveFromName();
 
         $body = $this->buildVerifyCodeHtml($code, $purpose, $ttlMinutes, $fromName);
 
         return [$subject, $body];
+    }
+
+    /**
+     * 解析发件人名称
+     *
+     * 优先级: system_configs(smtp 分组 smtp_from_name) > .env MAIL.SMTP_FROM_NAME > 默认值
+     * 与 SmtpMailer::configure() 保持一致, 后台 /admin/config 修改即时生效
+     */
+    private function resolveFromName(): string
+    {
+        try {
+            if (class_exists(\app\common\service\ConfigService::class)) {
+                $val = app(\app\common\service\ConfigService::class)->get('smtp_from_name');
+                if ($val !== null && $val !== '') {
+                    return (string) $val;
+                }
+            }
+        } catch (\Throwable $e) {
+            // 降级: 容器未就绪 / DB 未初始化等, 走 .env
+        }
+        return (string) (env('MAIL.SMTP_FROM_NAME') ?? '网盘搜索');
     }
 
     /**

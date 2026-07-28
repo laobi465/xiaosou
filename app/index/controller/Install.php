@@ -660,10 +660,10 @@ class Install extends BaseController
         }
 
         if (($cfg['smtp_user'] ?? '') === '') {
-            $lines[] = '注意: 邮件功能未配置, 后续编辑 .env [MAIL] 段';
+            $lines[] = '注意: 邮件功能未配置, 安装后登录后台 /admin → 系统配置 → 邮件配置 在线补充';
         }
         if (($cfg['pay_pid'] ?? '') === '') {
-            $lines[] = '注意: 支付功能未配置, 后续编辑 .env [PAY] 段';
+            $lines[] = '注意: 支付功能未配置, 安装后登录后台 /admin → 系统配置 → 支付配置 在线补充';
         }
 
         return implode("\n", $lines);

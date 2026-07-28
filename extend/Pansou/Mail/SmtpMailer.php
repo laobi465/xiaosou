@@ -8,7 +8,10 @@ use PHPMailer\PHPMailer\PHPMailer;
 /**
  * SMTP 邮件发送封装(PHPMailer)
  *
- * 配置来源: env MAIL.* (SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM/SMTP_FROM_NAME/SMTP_ENCRYPTION)
+ * 配置来源(优先级):
+ *   1. system_configs 表 smtp 分组(后台 /admin/config 可在线修改,即时生效)
+ *   2. env MAIL.* (SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM/SMTP_FROM_NAME/SMTP_ENCRYPTION)
+ *   3. 默认值
  */
 class SmtpMailer
 {
@@ -52,16 +55,24 @@ class SmtpMailer
 
     /**
      * 配置 PHPMailer 实例(SMTP)
+     *
+     * 读取优先级: system_configs(smtp 分组) > .env > 默认值
+     * 后台 /admin/config 修改 SMTP 配置后, ConfigService::set 已 flushGroup 清缓存,
+     * 下次实例化本类即生效, 无需重启 PHP-FPM。
      */
     protected function configure(): void
     {
-        $host       = (string) (env('MAIL.SMTP_HOST') ?? 'smtp.qq.com');
-        $port       = (int)    (env('MAIL.SMTP_PORT') ?? 465);
-        $user       = (string) (env('MAIL.SMTP_USER') ?? '');
-        $pass       = (string) (env('MAIL.SMTP_PASS') ?? '');
+        // 优先读 system_configs(后台 /admin/config 可在线修改), 降级 .env, 再降级默认值
+        $cfg = $this->loadConfig();
+
+        $host       = (string) ($cfg['smtp_host']       ?? env('MAIL.SMTP_HOST')       ?? 'smtp.qq.com');
+        $port       = (int)    ($cfg['smtp_port']       ?? env('MAIL.SMTP_PORT')       ?? 465);
+        $user       = (string) ($cfg['smtp_user']       ?? env('MAIL.SMTP_USER')       ?? '');
+        $pass       = (string) ($cfg['smtp_pass']       ?? env('MAIL.SMTP_PASS')       ?? '');
+        // SMTP_FROM 无 system_configs 白名单, 用 user 兜底(.env 优先), 保持原逻辑
         $from       = (string) (env('MAIL.SMTP_FROM') ?? $user);
-        $fromName   = (string) (env('MAIL.SMTP_FROM_NAME') ?? '网盘搜索');
-        $encryption = (string) (env('MAIL.SMTP_ENCRYPTION') ?? 'ssl');
+        $fromName   = (string) ($cfg['smtp_from_name']  ?? env('MAIL.SMTP_FROM_NAME')  ?? '网盘搜索');
+        $encryption = (string) ($cfg['smtp_encryption'] ?? env('MAIL.SMTP_ENCRYPTION') ?? 'ssl');
 
         $this->mailer->isSMTP();
         $this->mailer->Host       = $host;
@@ -84,5 +95,25 @@ class SmtpMailer
                 trace('smtp_setfrom_error: ' . $e->getMessage(), 'error');
             }
         }
+    }
+
+    /**
+     * 从 system_configs 加载 smtp 分组配置
+     *
+     * ConfigService 经 LoadConfig 中间件已预加载到容器, 失败降级返回空数组。
+     * 使用 class_exists 防护, 避免本 extend 库被外部使用时产生硬依赖(app 目录可能不存在)。
+     *
+     * @return array<string,mixed> smtp 分组配置 [key => value]
+     */
+    protected function loadConfig(): array
+    {
+        try {
+            if (class_exists(\app\common\service\ConfigService::class)) {
+                return app(\app\common\service\ConfigService::class)->getGroup('smtp');
+            }
+        } catch (\Throwable $e) {
+            // 降级: 容器未就绪 / DB 未初始化 / ConfigService 异常等, 返回空数组走 .env
+        }
+        return [];
     }
 }

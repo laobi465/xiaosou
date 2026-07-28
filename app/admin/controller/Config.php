@@ -86,7 +86,8 @@ class Config extends BaseAdminController
                 foreach ($data['configs'] as $key => $value) {
                     $keyStr = (string) $key;
                     // 敏感字段(密码/密钥)留空表示不修改, 跳过更新避免用空串覆盖真实值
-                    if ($value === '' && (stripos($keyStr, 'password') !== false || stripos($keyStr, 'secret') !== false)) {
+                    // 覆盖 smtp_pass / caihong_key 等不含 password/secret 字样的敏感字段
+                    if ($value === '' && $this->isSensitiveKey($keyStr)) {
                         continue;
                     }
                     if (!$configService->set($keyStr, $value)) {
@@ -106,5 +107,20 @@ class Config extends BaseAdminController
             'count' => $saved,
         ]);
         return $this->success(['count' => $saved], '保存成功');
+    }
+
+    /**
+     * 判断配置 key 是否为敏感字段(密码/密钥类)
+     *
+     * 覆盖: password / secret / pass(含 smtp_pass) / _key 后缀(含 caihong_key)
+     * 与视图 config/index.html 的密码框判断条件保持一致
+     */
+    protected function isSensitiveKey(string $key): bool
+    {
+        $lower = strtolower($key);
+        return stripos($lower, 'password') !== false
+            || stripos($lower, 'secret') !== false
+            || stripos($lower, 'pass') !== false
+            || str_ends_with($lower, '_key');
     }
 }

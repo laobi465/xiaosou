@@ -44,13 +44,18 @@
                 {if condition="empty($items)"}
                 <div class="empty">该分组暂无配置项</div>
                 {else/}
+                {if condition="$groupName eq 'smtp'"}
+                <p class="panel-tip">修改后立即生效，无需重启 PHP-FPM。敏感字段（密码）留空表示不修改。</p>
+                {elseif condition="$groupName eq 'payment'"/}
+                <p class="panel-tip">修改后立即生效。商户密钥留空表示不修改。</p>
+                {/if}
                 <form action="/admin/config/save" method="post" data-action="ajax-form" data-redirect="/admin/config?group={$groupName}">
                     <input type="hidden" name="group" value="{$groupName}">
                     <div class="form-row">
                         {foreach $items as $key => $value}
                         <div class="form-item">
                             <label>{$key}</label>
-                            {if condition="stripos((string)$key, 'password') !== false || stripos((string)$key, 'secret') !== false"}
+                            {if condition="stripos((string)$key, 'password') !== false || stripos((string)$key, 'secret') !== false || stripos((string)$key, 'pass') !== false || strtolower(substr((string)$key, -4)) eq '_key'"}
                             <input type="password" name="configs[{$key}]" value="" placeholder="••••••（留空不修改）" autocomplete="new-password">
                             {else/}
                             <input type="text" name="configs[{$key}]" value="{$value}">

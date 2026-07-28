@@ -89,7 +89,7 @@
 <!-- 步骤 4: 邮件/支付/管理员 -->
 <div class="step-panel" id="step-4">
     <h2>邮件 / 支付 / 管理员</h2>
-    <p class="step-desc">SMTP 与支付可留空跳过，安装后编辑 .env 补充</p>
+    <p class="step-desc">SMTP 与支付可留空跳过，安装后登录后台 /admin → 系统配置 在线补充</p>
     <form id="form-config" class="install-form">
         <h3 class="form-section-title">SMTP 邮件（可空）</h3>
         <div class="form-row">
@@ -116,6 +116,7 @@
             <label>发件人名称</label>
             <input type="text" name="smtp_from_name" value="网盘搜索">
         </div>
+        <p class="form-hint">安装后可在后台 /admin → 系统配置 → 邮件配置 在线修改</p>
 
         <h3 class="form-section-title">彩虹易支付（可空）</h3>
         <div class="form-item">
@@ -132,6 +133,7 @@
                 <input type="text" name="pay_api" value="https://pay.cccdl.com">
             </div>
         </div>
+        <p class="form-hint">安装后可在后台 /admin → 系统配置 → 支付配置 在线修改</p>
 
         <h3 class="form-section-title">管理员账号</h3>
         <div class="form-row">

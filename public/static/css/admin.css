@@ -1757,6 +1757,19 @@ code {
     margin-bottom: 0;
 }
 
+/* ---------- 配置面板即时生效提示（smtp/payment 分组） ---------- */
+.config-content .panel-tip {
+    margin: 0 0 var(--space-md);
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-inset-sm);
+}
+
 /* ---------- 日志工具栏胶囊按钮组增强 ---------- */
 .log-toolbar {
     background-color: var(--bg-base);

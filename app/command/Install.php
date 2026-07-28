@@ -600,10 +600,10 @@ class Install extends Command
         $output->writeln('');
 
         if ($this->config['smtp_user'] === '') {
-            $output->writeln('<comment>注意：邮件功能未配置，后续编辑 .env [MAIL] 段</comment>');
+            $output->writeln('<comment>注意：邮件功能未配置，安装后登录后台 /admin → 系统配置 → 邮件配置 在线补充</comment>');
         }
         if ($this->config['pay_pid'] === '') {
-            $output->writeln('<comment>注意：支付功能未配置，后续编辑 .env [PAY] 段</comment>');
+            $output->writeln('<comment>注意：支付功能未配置，安装后登录后台 /admin → 系统配置 → 支付配置 在线补充</comment>');
         }
 
         $output->writeln('');

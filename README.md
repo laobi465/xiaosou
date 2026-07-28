@@ -99,6 +99,8 @@ composer install
 
 安装完成后 /install 自动禁用（基于 install.lock），重装需删除该文件或访问 /install?force=1。
 
+> SMTP 邮件与彩虹易支付可在安装向导中留空跳过，安装后登录后台 `/admin → 系统配置` 在线补充，保存即生效，无需编辑 `.env` 或重启 PHP-FPM。
+
 **方式二：命令行安装（备选）**
 
 ```bash
