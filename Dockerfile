@@ -53,8 +53,8 @@ RUN docker-php-ext-install -j"$(nproc)" pdo_mysql mysqli bcmath
 # 压缩 + 国际化 + 多字节
 RUN docker-php-ext-install -j"$(nproc)" zip bz2 intl mbstring
 
-# 进程 + 信号
-RUN docker-php-ext-install -j"$(nproc)" pcntl sockets
+# 进程信号（think-queue Worker 优雅退出需要 pcntl）
+RUN docker-php-ext-install -j"$(nproc)" pcntl
 
 # opcache（PHP 8.2 镜像已内置，只需启用）
 RUN docker-php-ext-enable opcache
