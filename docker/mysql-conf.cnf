@@ -1,0 +1,39 @@
+-- =============================================================================
+-- MySQL 8.0 自定义初始化配置 - 网盘资源搜索引擎
+-- 启用 ngram_token_size=2 与 innodb_ft_min_token_size=2（用于 FULLTEXT 中文索引）
+-- 此文件挂载到 /etc/mysql/conf.d/ 由 MySQL 容器启动时加载
+-- =============================================================================
+
+[mysqld]
+# 字符集
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+default-authentication-plugin = mysql_native_password
+
+# FULLTEXT 中文索引（ngram 分词器）
+ngram_token_size = 2
+innodb_ft_min_token_size = 2
+
+# 性能调优（适合 2GB 内存容器）
+innodb_buffer_pool_size = 512M
+innodb_log_file_size = 128M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+max_connections = 200
+max_allowed_packet = 64M
+wait_timeout = 600
+interactive_timeout = 600
+
+# 时区
+default-time-zone = '+08:00'
+
+# 日志
+slow_query_log = 1
+long_query_time = 2
+# slow_query_log_file = /var/lib/mysql/slow.log
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4

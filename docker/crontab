@@ -1,0 +1,18 @@
+# =============================================================================
+# Crontab - 定时任务调度
+# 格式: minute hour day month dayofweek  user  command
+# =============================================================================
+
+# 采集任务分发（每分钟）
+* * * * * www-data cd /var/www/html && php think crawl:dispatch >> /var/www/html/runtime/log/cron-dispatch.log 2>&1
+
+# 关闭超时未支付订单（每分钟）
+* * * * * www-data cd /var/www/html && php think order:close >> /var/www/html/runtime/log/cron-order.log 2>&1
+
+# 广告统计聚合 + 热搜词归档（每天 0 点）
+0 0 * * * www-data cd /var/www/html && php think ad:agg >> /var/www/html/runtime/log/cron-adagg.log 2>&1
+
+# 验证码清理（每小时 0 分）
+0 * * * * www-data cd /var/www/html && php think verify:clean >> /var/www/html/runtime/log/cron-verify.log 2>&1
+
+# 空行结尾

@@ -87,7 +87,53 @@ php -S 127.0.0.1:8000 -t public/
 
 ## 部署
 
-生产环境部署请参阅 **[宝塔面板部署教程](docs/宝塔面板部署教程.md)**。
+提供两种部署方式，按需选择：
+
+### 方式一：Docker 一键部署（推荐）
+
+最快 5 分钟即可上线，无需手动配置 PHP / Nginx / MySQL / Redis 环境。
+
+```bash
+# 1. 克隆代码
+git clone https://github.com/laobi465/xiaosou.git
+cd xiaosou
+
+# 2. 配置环境变量
+cp .env.docker.example .env.docker
+vi .env.docker            # 修改数据库密码、邮件、支付、管理员账号等
+
+# 3. 一键启动
+chmod +x docker-deploy.sh
+./docker-deploy.sh up
+```
+
+启动完成后访问 `http://服务器IP:8080` 即可。
+
+详细教程请参阅 **[Docker 部署教程](docs/Docker部署教程.md)**。
+
+包含服务：
+- `pansou-app` — PHP-FPM + Nginx（Web 入口）
+- `pansou-worker` — 队列消费者 + Crontab 定时任务
+- `pansou-mysql` — MySQL 8.0（ngram 中文索引）
+- `pansou-redis` — Redis 7（缓存/队列/会话/锁）
+
+部署脚本命令：
+
+```bash
+./docker-deploy.sh up       # 构建并启动
+./docker-deploy.sh down     # 停止
+./docker-deploy.sh logs     # 查看日志
+./docker-deploy.sh restart  # 重启
+./docker-deploy.sh status   # 查看状态
+./docker-deploy.sh shell    # 进入容器
+./docker-deploy.sh reset    # 重置数据（清空数据库）
+```
+
+### 方式二：宝塔面板部署
+
+适合已有宝塔面板的服务器，需要手动配置环境。
+
+请参阅 **[宝塔面板部署教程](docs/宝塔面板部署教程.md)**。
 
 主要步骤：
 1. 宝塔面板安装 LNMP 环境（PHP 8.2+ / MySQL 8.0 / Redis）
@@ -133,11 +179,26 @@ php -S 127.0.0.1:8000 -t public/
 │   ├── Search/             # 搜索驱动 (MySQL FULLTEXT / Elasticsearch)
 │   ├── Helper/             # 工具类 (加密/签名/哈希)
 │   └── Sensitive/          # 敏感词 DFA 过滤
+├── docker/                 # Docker 部署配置
+│   ├── nginx.conf          # Nginx 配置
+│   ├── supervisord.conf    # App 容器 Supervisor 配置
+│   ├── worker-supervisord.conf  # Worker 容器 Supervisor 配置
+│   ├── php.ini             # PHP 自定义配置
+│   ├── php-fpm.conf        # PHP-FPM 配置
+│   ├── crontab             # 定时任务清单
+│   ├── mysql-conf.cnf      # MySQL 自定义配置 (ngram)
+│   ├── entrypoint.sh       # App 容器入口脚本
+│   └── worker-entrypoint.sh  # Worker 容器入口脚本
+├── Dockerfile              # Docker 镜像构建文件
+├── docker-compose.yml      # Docker Compose 服务编排
+├── docker-deploy.sh        # 一键部署脚本
+├── .env.docker.example     # Docker 环境变量样例
 └── docs/                   # 设计文档
     ├── PRD-网盘资源搜索引擎.md
     ├── 架构设计文档.md
     ├── 数据库设计文档.md
-    └── 宝塔面板部署教程.md
+    ├── 宝塔面板部署教程.md
+    └── Docker部署教程.md
 ```
 
 ## 功能模块
@@ -242,6 +303,7 @@ stdout_logfile=/path/to/xiaosou/runtime/log/supervisor-mail.log
 - [PRD 需求文档](docs/PRD-网盘资源搜索引擎.md)
 - [架构设计文档](docs/架构设计文档.md)
 - [数据库设计文档](docs/数据库设计文档.md)
+- [Docker 部署教程](docs/Docker部署教程.md)（推荐）
 - [宝塔面板部署教程](docs/宝塔面板部署教程.md)
 
 ## 默认配置

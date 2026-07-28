@@ -10,6 +10,8 @@
 
 # 环境配置
 /.env
+/.env.docker
+/.env.*.local
 
 # 上传文件
 /public/static/uploads/*

@@ -1,0 +1,192 @@
+# =============================================================================
+# 网盘资源搜索引擎 - Docker Compose 一键部署
+# 服务编排：app（PHP-FPM+Nginx）+ worker（队列+Cron）+ mysql + redis
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # -----------------------------------------------------------
+  # MySQL 8.0 - 主数据库（启用 ngram 中文分词）
+  # -----------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: pansou-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-pansou_root_2024}
+      MYSQL_DATABASE: ${DB_NAME:-pan_search}
+      MYSQL_USER: ${DB_USER:-pansou}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-pansou_2024}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --ngram_token_size=2
+      - --innodb_ft_min_token_size=2
+      - --innodb_buffer_pool_size=512M
+      - --max_connections=200
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql-conf.cnf:/etc/mysql/conf.d/pansou.cnf:ro
+      - ./database/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
+      - ./database/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    ports:
+      - "${DB_EXPOSE_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-pansou_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - pansou-net
+
+  # -----------------------------------------------------------
+  # Redis 7 - 缓存 / 队列 / 会话 / 分布式锁
+  # -----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: pansou-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "${REDIS_PASSWORD:-}" ]; then
+          redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru;
+        else
+          redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru;
+        fi
+      '
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_EXPOSE_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pansou-net
+
+  # -----------------------------------------------------------
+  # App - PHP-FPM + Nginx（主 Web 服务）
+  # -----------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pansou-app:latest
+    container_name: pansou-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      CONTAINER_ROLE: app
+      # 数据库
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-pan_search}
+      DB_USER: ${DB_USER:-pansou}
+      DB_PASSWORD: ${DB_PASSWORD:-pansou_2024}
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-pansou_root_2024}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # 应用
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY:-}
+      SESSION_SECURE: ${SESSION_SECURE:-true}
+      SESSION_SAMESITE: ${SESSION_SAMESITE:-Lax}
+      # 邮件
+      MAIL_HOST: ${MAIL_HOST:-smtp.qq.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-网盘搜索}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-ssl}
+      # 支付
+      PAY_PID: ${PAY_PID:-}
+      PAY_KEY: ${PAY_KEY:-}
+      PAY_API: ${PAY_API:-}
+      PAY_NOTIFY_URL: ${PAY_NOTIFY_URL:-}
+      PAY_RETURN_URL: ${PAY_RETURN_URL:-}
+      # 管理员
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      # 安全
+      AES_KEY: ${AES_KEY:-}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-}
+    volumes:
+      - app-runtime:/var/www/html/runtime
+      - app-uploads:/var/www/html/public/static/uploads
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pansou-net
+
+  # -----------------------------------------------------------
+  # Worker - 队列消费者 + Crontab 定时任务
+  # -----------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pansou-app:latest
+    container_name: pansou-worker
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      CONTAINER_ROLE: worker
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-pan_search}
+      DB_USER: ${DB_USER:-pansou}
+      DB_PASSWORD: ${DB_PASSWORD:-pansou_2024}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    entrypoint: ["/usr/local/bin/worker-entrypoint.sh"]
+    volumes:
+      - app-runtime:/var/www/html/runtime
+      - app-uploads:/var/www/html/public/static/uploads
+    networks:
+      - pansou-net
+
+networks:
+  pansou-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  app-runtime:
+    driver: local
+  app-uploads:
+    driver: local

@@ -1,0 +1,40 @@
+# Docker 构建上下文排除清单
+.git
+.gitignore
+.github
+.idea
+.vscode
+.trae
+.agents
+agent
+skills-lock.json
+
+# 运行时与日志
+runtime
+*.log
+
+# 环境配置（容器内由 entrypoint 生成）
+.env
+.env.docker
+.env.local
+.env.*.local
+
+# 文档（运行时不需要）
+docs
+*.md
+!README.md
+
+# 数据卷目录
+docker/data
+mysql-data
+redis-data
+
+# 上传文件（运行时由卷挂载）
+public/static/uploads/*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
