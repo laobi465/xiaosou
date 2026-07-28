@@ -114,16 +114,102 @@ sudo systemctl restart docker
 
 ---
 
-## 三、一键部署（推荐）
+## 三、一键部署
 
-### 3.1 获取代码
+提供两种部署方式，按需选择：
+
+### 3.0 真·一条命令（推荐，零交互）
+
+无需预先 clone 仓库，无需手动编辑配置文件，一条命令完成全部部署：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
+```
+
+自定义端口（默认 8080）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -p 9000
+```
+
+跳过确认提示（适合自动化脚本）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -y
+```
+
+**脚本执行流程：**
+
+| 阶段 | 动作 |
+|------|------|
+| 1. 环境检测 | 检测 Docker / Docker Compose / git，未安装则自动安装（调用 get.docker.com） |
+| 2. 代码准备 | 当前目录非仓库时自动 `git clone` 到 `~/pansou-deploy` |
+| 3. 端口检查 | 检测端口占用，冲突时报错并提示使用 `-p` 指定其他端口 |
+| 4. 生成配置 | 自动生成随机密码（DB / Redis / Admin / APP_KEY / AES_KEY），写入 `.env.docker`（权限 600） |
+| 5. 启动服务 | `docker compose up -d --build`，启动 mysql / redis / app / worker 四容器 |
+| 6. 等待就绪 | 轮询 `docker inspect` healthcheck，最长等待 240 秒，并探测 `/healthz` |
+| 7. 输出凭据 | 打印访问地址、管理员账号密码、数据库密码、后续运维命令 |
+
+**部署完成后输出示例：**
+
+```
+=================================================
+  部署完成！
+=================================================
+
+  前台访问:  http://192.168.1.100:8080
+  后台访问:  http://192.168.1.100:8080/admin/login
+
+  管理员账号:  admin
+  管理员密码:  aB3xK9mP2qR7
+
+  数据库密码:  见 ~/pansou-deploy/.env.docker （DB_PASSWORD）
+  Redis 密码:   见 ~/pansou-deploy/.env.docker （REDIS_PASSWORD）
+
+  请妥善保存以上凭据！
+
+  项目目录:  /home/user/pansou-deploy
+
+  常用运维命令:
+    cd /home/user/pansou-deploy
+    ./docker-deploy.sh status     # 查看服务状态
+    ./docker-deploy.sh logs       # 查看实时日志
+    ./docker-deploy.sh restart    # 重启服务
+    ./docker-deploy.sh down       # 停止服务
+
+  提醒：邮件 SMTP 与彩虹易支付未配置，
+  如需启用注册验证码与积分充值，请编辑 .env.docker 后执行:
+    vi .env.docker && ./docker-deploy.sh restart
+```
+
+**幂等性说明：**
+- 再次执行 `install.sh` 会跳过 `.env.docker` 生成（保留既有密码），直接 `up -d`
+- 如需重新生成密码：`rm .env.docker && ./install.sh`
+- 如需完全重置（清空数据库）：`./docker-deploy.sh reset`
+
+**卸载：**
+
+```bash
+cd ~/pansou-deploy
+./docker-deploy.sh down        # 停止并删除容器
+docker volume rm xiaosou_mysql-data xiaosou_redis-data xiaosou_app-runtime xiaosou_app-uploads  # 清空数据
+cd ~ && rm -rf ~/pansou-deploy
+```
+
+---
+
+### 3.1 标准部署（手动配置）
+
+适合需要自定义每个配置项的场景。
+
+#### 3.1.1 获取代码
 
 ```bash
 git clone https://github.com/laobi465/xiaosou.git
 cd xiaosou
 ```
 
-### 3.2 配置环境变量
+#### 3.1.2 配置环境变量
 
 ```bash
 # 复制样例文件
@@ -172,7 +258,7 @@ APP_DEBUG=false
 CORS_ALLOW_ORIGIN=
 ```
 
-### 3.3 一键启动
+#### 3.1.3 一键启动
 
 ```bash
 chmod +x docker-deploy.sh
@@ -187,7 +273,7 @@ chmod +x docker-deploy.sh
 5. app 容器自动生成 `.env` 文件并创建管理员账号
 6. 等待服务就绪后输出访问地址
 
-### 3.4 访问验证
+#### 3.1.4 访问验证
 
 启动成功后输出：
 

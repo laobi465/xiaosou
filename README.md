@@ -9,6 +9,35 @@
 [![ThinkPHP](https://img.shields.io/badge/ThinkPHP-8.0-red.svg)](https://www.thinkphp.cn/)
 [![MySQL](https://img.shields.io/badge/MySQL-%3E%3D8.0-4479A1.svg)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Redis-%3E%3D6.0-DC382D.svg)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-一键部署-2496ED.svg)](docs/Docker部署教程.md)
+
+---
+
+## 一键部署（推荐）
+
+**真·一条命令**，自动检测安装 Docker / git、自动生成随机密码、自动启动并等待就绪：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
+```
+
+自定义端口（默认 8080）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -p 9000
+```
+
+脚本会自动完成：
+1. 检测并安装 Docker / Docker Compose / git
+2. 克隆仓库（如不在仓库内）
+3. 生成随机密码并写入 `.env.docker`
+4. 构建镜像并启动 `mysql / redis / app / worker` 四个容器
+5. 轮询健康检查直到服务就绪
+6. 输出访问地址与管理员账号密码
+
+部署完成后，浏览器访问输出的地址即可使用。邮件 SMTP 与彩虹易支付默认留空，按需编辑 `.env.docker` 后执行 `./docker-deploy.sh restart` 即可。
+
+> 其他部署方式（宝塔面板、手动 Docker Compose）见下文 [部署](#部署) 章节。
 
 ---
 
