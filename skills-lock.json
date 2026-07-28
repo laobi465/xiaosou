@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-handover": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/agent-handover/SKILL.md",
+      "computedHash": "6934a24c5f52fefc4e38a707c7c268beff2debce4cab5f1fd59dfcddef40ea4d"
+    },
+    "anti-hallucination": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/anti-hallucination/SKILL.md",
+      "computedHash": "784c4a46e8e5db72f64ae7247c526c54fe4da4b709a11ad062990783e101126b"
+    },
+    "bug-debugging": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/bug-debugging/SKILL.md",
+      "computedHash": "226003ce5eed4e1850d8caa99cac88a2cc50c7583c9fab4b497b551fdde8453c"
+    },
+    "code-review": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/code-review/SKILL.md",
+      "computedHash": "4d912bd1d931ccec24850d16b63e79bb1986cbf1fb3b7ea147a28e2a62a8d0f6"
+    },
+    "code-self-check": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/code-self-check/SKILL.md",
+      "computedHash": "c01d2902c09f11652fff3ce4a284dde01691f9b3a24085f27395587eaf88486b"
+    },
+    "development-workflow": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/development-workflow/SKILL.md",
+      "computedHash": "9dad1135252ec004a4669ab347eecca7b11137301bb58e6bc43537815abb8bad"
+    },
+    "github-workflow": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/github-workflow/SKILL.md",
+      "computedHash": "4b9ce0e247584aa96184538a94041d9a7586614e7a9004cafd124414f25ea1dd"
+    },
+    "interactive-learning": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/interactive-learning/SKILL.md",
+      "computedHash": "b4f49a4c83c981c4c1d1c18edaebb2fae1053b6099b17110af6db400d81a30ea"
+    },
+    "no-hardcoding": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/no-hardcoding/SKILL.md",
+      "computedHash": "a4e35cdd4e2f82aeea8a6f163fbf89d904ea12fb72d59033bb71969ef85978aa"
+    },
+    "page-prototype-design": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/page-prototype-design/SKILL.md",
+      "computedHash": "503d6e28b103529e35f4ea1421d90094092c62b514366edae96fa398ae68f804"
+    },
+    "prd-generation": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/prd-generation/SKILL.md",
+      "computedHash": "982ec7a11e24e75e8146879fb9f9b0b9a70fa3bea45e2f3a4fc90eb503e19227"
+    },
+    "project-init": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/project-init/SKILL.md",
+      "computedHash": "c65d5fd6c3dbbd4c3dbd9e017629285a46f831047247a234f10f7e2f58d346ac"
+    },
+    "requirements-interview": {
+      "source": "laobi465/skills2",
+      "sourceType": "github",
+      "skillPath": "skills/requirements-interview/SKILL.md",
+      "computedHash": "81326a3be3fe52f283450786740f25f839654e3e55404e4a9c8459925b06ce57"
+    }
+  }
+}
