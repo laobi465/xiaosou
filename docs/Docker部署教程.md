@@ -142,17 +142,70 @@ curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | 
 curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -y
 ```
 
-**脚本执行流程：**
+> **宝塔面板用户专属说明**：脚本会自动检测宝塔环境（`/www/server/panel` 存在），并做以下智能适配，无需额外操作：
+>
+> | 适配项 | 说明 |
+> |--------|------|
+> | 部署目录 | 自动改为 `/www/wwwroot/pansou`（符合宝塔站点习惯，便于文件管理） |
+> | Docker 安装 | Docker 未装时，提示可通过「宝塔软件商店 → Docker管理器」安装，或命令行自动装 |
+> | 端口冲突避让 | 宝塔自带 MySQL(3306)/Redis(6379) 会被占用，脚本自动把 DB/Redis 暴露端口改为空闲高位端口（如 3326/6399），避免容器启动失败 |
+> | 防火墙提醒 | 部署完成后提示在「宝塔面板 → 安全 → 防火墙」放行 Web 端口 |
+> | 反代配置 | 提示通过「宝塔面板 → 网站 → 反向代理」配置域名 + HTTPS |
+>
+> 详细的宝塔专属操作见下方 [3.0.1 宝塔面板一键部署（专属指南）](#301-宝塔面板一键部署专属指南)。
 
-| 阶段 | 动作 |
-|------|------|
-| 1. 环境检测 | 检测 Docker / Docker Compose / git，未安装则自动安装（调用 get.docker.com） |
-| 2. 代码准备 | 当前目录非仓库时自动 `git clone` 到 `~/pansou-deploy` |
-| 3. 端口检查 | 检测端口占用，冲突时报错并提示使用 `-p` 指定其他端口 |
-| 4. 生成配置 | 自动生成随机密码（DB / Redis / Admin / APP_KEY / AES_KEY），写入 `.env.docker`（权限 600） |
-| 5. 启动服务 | `docker compose up -d --build`，启动 mysql / redis / app / worker 四容器 |
-| 6. 等待就绪 | 轮询 `docker inspect` healthcheck，最长等待 240 秒，并探测 `/healthz` |
-| 7. 输出凭据 | 打印访问地址、管理员账号密码、数据库密码、后续运维命令 |
+#### 3.0.1 宝塔面板一键部署（专属指南）
+
+适用场景：服务器已安装宝塔面板，希望通过 Docker 方式部署本系统。
+
+**第 1 步：安装 Docker（二选一）**
+
+- **方式 A（图形化，推荐新手）**：宝塔面板 → 软件商店 → 搜索「Docker管理器」→ 点击安装
+- **方式 B（命令行）**：宝塔终端执行
+  ```bash
+  curl -fsSL https://get.docker.com | sh
+  sudo systemctl enable --now docker
+  ```
+
+**第 2 步：宝塔终端执行一键命令**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
+```
+
+脚本会自动识别宝塔环境，部署到 `/www/wwwroot/pansou`，并自动避开 3306/6379 端口冲突。
+
+**第 3 步：宝塔防火墙放行端口（必须）**
+
+部署完成后，脚本会输出 Web 端口（默认 8080）。在宝塔面板放行：
+
+> 宝塔面板 → 安全 → 防火墙 → 添加端口规则 → 放行 `8080`（TCP）
+
+> **重要**：宝塔防火墙默认不放行非标准端口，不放行则外网无法访问，但本机 `curl 127.0.0.1:8080` 正常。这是宝塔环境最常见的「部署成功但访问不了」问题。
+
+**第 4 步：配置域名 + HTTPS（可选，推荐生产）**
+
+通过宝塔反向代理，避免直接暴露 8080 端口：
+
+1. 宝塔面板 → 网站 → 添加站点（填入你的域名，纯静态即可）
+2. 站点设置 → 反向代理 → 添加反向代理
+   - 代理名称：`pansou`
+   - 目标 URL：`http://127.0.0.1:8080`
+   - 发送域名：`$host`
+3. 站点设置 → SSL → Let's Encrypt → 申请免费证书 → 强制 HTTPS
+
+配置完成后，直接通过域名访问，无需带端口号。
+
+**宝塔环境常见问题：**
+
+| 现象 | 原因 | 解决 |
+|------|------|------|
+| 本机 curl 正常，外网打不开 | 宝塔防火墙未放行端口 | 宝塔面板 → 安全 → 防火墙 → 放行 8080 |
+| 容器启动报 `port is already allocated` | 8080 被宝塔其他站点占用 | 重新执行 `install.sh -p 9000` 指定其他端口 |
+| MySQL 容器启动失败 `bind: address already in use` | 3306 被宝塔自带 MySQL 占用 | 脚本已自动避让；若仍失败，编辑 `.env.docker` 改 `DB_EXPOSE_PORT` 为 0（不暴露） |
+| 部署后想用宝塔自带 MySQL 而非容器 | — | 不建议，容器版已含 ngram 中文索引优化；如必须，请用「方式二：标准部署」并修改 `docker-compose.yml` 移除 mysql 服务 |
+
+
 
 **部署完成后输出示例：**
 

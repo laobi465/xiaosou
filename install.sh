@@ -28,6 +28,17 @@ DEFAULT_PORT=8080
 CLONE_DIR="${HOME}/pansou-deploy"
 HEALTH_TIMEOUT=240
 
+# ---------- 宝塔面板环境检测 ----------
+# 宝塔面板安装后 /www/server/panel 目录存在; 宝塔自带 MySQL(3306)/Redis(6379)/Nginx(80)
+# 默认 DB_EXPOSE_PORT=3306 / REDIS_EXPOSE_PORT=6379 会与宝塔服务冲突, 需自动避让
+IS_BAOTA=false
+BT_PANEL_DIR="/www/server/panel"
+if [ -d "${BT_PANEL_DIR}" ]; then
+    IS_BAOTA=true
+    # 宝塔环境下部署到 /www/wwwroot/ 符合宝塔站点习惯, 便于宝塔文件管理
+    CLONE_DIR="/www/wwwroot/pansou"
+fi
+
 # ---------- 颜色 ----------
 if [ -t 1 ]; then
     C_RED='\033[0;31m'
@@ -108,6 +119,21 @@ ensure_docker() {
     if has_cmd docker; then
         ok "Docker 已安装: $(docker --version)"
     else
+        # 宝塔环境下优先提示通过软件商店安装(更符合宝塔用户习惯), 并提供命令行备选
+        if [ "${IS_BAOTA}" = true ]; then
+            echo ""
+            warn "检测到宝塔面板环境, Docker 未安装。两种安装方式任选其一:"
+            echo ""
+            echo -e "  ${C_BOLD}方式一(推荐, 图形化):${C_OFF} 宝塔面板 → 软件商店 → 搜索 \"Docker管理器\" → 安装"
+            echo -e "  ${C_BOLD}方式二(命令行):${C_OFF} 本脚本将自动执行 get.docker.com 安装"
+            echo ""
+            if [ "${NO_CONFIRM}" = false ] && [ -t 0 ]; then
+                read -r -p "是否使用命令行方式自动安装 Docker? [Y/n] " ans
+                case "${ans:-Y}" in
+                    [Nn]*) die "请先在宝塔软件商店安装 Docker管理器, 然后重新运行本脚本" ;;
+                esac
+            fi
+        fi
         log "未检测到 Docker，开始自动安装 ..."
         if has_cmd curl; then
             curl -fsSL https://get.docker.com | sh
@@ -195,16 +221,51 @@ check_port() {
     fi
 }
 
+# 检测端口是否被占用(返回 0=占用, 1=空闲), 不退出
+port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -tlnH 2>/dev/null | awk '{print $4}' | grep -qE ":${port}\$" && return 0
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tlnH 2>/dev/null | awk '{print $4}' | grep -qE ":${port}\$" && return 0
+    fi
+    return 1
+}
+
+# 为 DB/Redis 暴露端口选择一个空闲端口
+# 用法: pick_free_port <首选端口> <最小> <最大>
+# 宝塔环境自带 MySQL(3306)/Redis(6379), 默认暴露端口会冲突, 自动改为空闲高位端口
+pick_free_port() {
+    local prefer="$1" lo="$2" hi="$3"
+    # 首选端口空闲则直接用
+    if ! port_in_use "${prefer}"; then
+        echo "${prefer}"
+        return 0
+    fi
+    # 否则在 [lo, hi] 区间找空闲端口
+    local p
+    for p in $(seq "${lo}" "${hi}"); do
+        if ! port_in_use "${p}"; then
+            echo "${p}"
+            return 0
+        fi
+    done
+    # 全部占用, 返回首选(让 docker 启动时报错, 用户可见)
+    echo "${prefer}"
+    return 0
+}
+
 # 生成 .env.docker
 generate_env() {
     local env_file="${PROJECT_DIR}/.env.docker"
 
     if [ -f "${env_file}" ]; then
         warn "检测到已存在 ${env_file}，保留既有配置（如需重置请删除该文件后重跑）"
-        # 读取既有端口用于后续健康检查
+        # 读取既有端口用于后续健康检查与输出
         PORT="$(grep -oP '^WEB_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "${PORT}")"
-        # 读取既有管理员密码用于输出
         ADMIN_PASSWORD_OUT="$(grep -oP '^ADMIN_PASSWORD=\K.*' "${env_file}" 2>/dev/null || echo "")"
+        DB_EXPOSE_PORT_OUT="$(grep -oP '^DB_EXPOSE_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "3306")"
+        REDIS_EXPOSE_PORT_OUT="$(grep -oP '^REDIS_EXPOSE_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "6379")"
         return
     fi
 
@@ -219,6 +280,21 @@ generate_env() {
     aes_key="$(gen_pass 32)"
 
     ADMIN_PASSWORD_OUT="${admin_pass}"
+
+    # DB/Redis 暴露端口冲突避让
+    # 宝塔自带 MySQL(3306)/Redis(6379), 默认暴露端口会冲突导致容器启动失败
+    # 自动检测: 首选端口被占用则在高位区间找空闲端口
+    local db_expose redis_expose
+    db_expose="$(pick_free_port 3306 3326 3399)"
+    redis_expose="$(pick_free_port 6379 6399 6499)"
+    if [ "${db_expose}" != "3306" ]; then
+        warn "宿主机 3306 端口被占用(可能是宝塔/已有 MySQL), DB 暴露端口改为 ${db_expose}"
+    fi
+    if [ "${redis_expose}" != "6379" ]; then
+        warn "宿主机 6379 端口被占用(可能是宝塔/已有 Redis), Redis 暴露端口改为 ${redis_expose}"
+    fi
+    DB_EXPOSE_PORT_OUT="${db_expose}"
+    REDIS_EXPOSE_PORT_OUT="${redis_expose}"
 
     cat > "${env_file}" <<EOF
 # =============================================================================
@@ -235,11 +311,11 @@ DB_NAME=pan_search
 DB_USER=pansou
 DB_PASSWORD=${db_pass}
 DB_ROOT_PASSWORD=${db_root_pass}
-DB_EXPOSE_PORT=3306
+DB_EXPOSE_PORT=${db_expose}
 
 # ---------- Redis ----------
 REDIS_PASSWORD=${redis_pass}
-REDIS_EXPOSE_PORT=6379
+REDIS_EXPOSE_PORT=${redis_expose}
 
 # ---------- 应用 ----------
 APP_DEBUG=false
@@ -290,7 +366,7 @@ wait_healthy() {
     local timeout="${3:-120}"
     local i=0
     log "等待 ${name} 容器健康 ..."
-    while [ $i -lt $timeout ]; do
+    while [ $i -lt "$timeout" ]; do
         local status
         status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "${container}" 2>/dev/null || echo "missing")"
         case "$status" in
@@ -317,7 +393,7 @@ wait_http() {
     local timeout="${2:-60}"
     local i=0
     log "等待 Web 服务响应: ${url}"
-    while [ $i -lt $timeout ]; do
+    while [ $i -lt "$timeout" ]; do
         if curl -fsS --max-time 3 "${url}" >/dev/null 2>&1; then
             ok "Web 服务已就绪（等待 ${i} 秒）"
             return 0
@@ -380,6 +456,9 @@ main() {
     echo ""
     echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
     echo -e "${C_GREEN}${C_BOLD}  部署完成！${C_OFF}"
+    if [ "${IS_BAOTA}" = true ]; then
+        echo -e "${C_GREEN}${C_BOLD}  (宝塔面板环境)${C_OFF}"
+    fi
     echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
     echo ""
     echo -e "  ${C_BOLD}前台访问:${C_OFF}  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo '服务器IP'):${PORT}"
@@ -390,6 +469,8 @@ main() {
     echo ""
     echo -e "  ${C_BOLD}数据库密码:${C_OFF}  见 ${PROJECT_DIR}/.env.docker （DB_PASSWORD）"
     echo -e "  ${C_BOLD}Redis 密码:${C_OFF}   见 ${PROJECT_DIR}/.env.docker （REDIS_PASSWORD）"
+    echo -e "  ${C_BOLD}DB 暴露端口:${C_OFF}  ${DB_EXPOSE_PORT_OUT}（容器内 3306）"
+    echo -e "  ${C_BOLD}Redis 暴露端口:${C_OFF}  ${REDIS_EXPOSE_PORT_OUT}（容器内 6379）"
     echo ""
     echo -e "  ${C_YELLOW}请妥善保存以上凭据！${C_OFF}"
     echo ""
@@ -402,6 +483,21 @@ main() {
     echo -e "    ./docker-deploy.sh restart    # 重启服务"
     echo -e "    ./docker-deploy.sh down       # 停止服务"
     echo ""
+
+    # 宝塔环境专属提醒: 防火墙放行 + 反向代理
+    if [ "${IS_BAOTA}" = true ]; then
+        echo -e "  ${C_YELLOW}${C_BOLD}[宝塔] 防火墙放行（必须，否则外网无法访问）:${C_OFF}"
+        echo -e "    宝塔面板 → 安全 → 防火墙 → 放行端口 ${PORT}"
+        if [ "${DB_EXPOSE_PORT_OUT}" != "3306" ] || [ "${REDIS_EXPOSE_PORT_OUT}" != "6379" ]; then
+            echo -e "    如需远程连 DB/Redis, 另放行 ${DB_EXPOSE_PORT_OUT} / ${REDIS_EXPOSE_PORT_OUT}（生产环境不建议暴露）"
+        fi
+        echo ""
+        echo -e "  ${C_BOLD}[宝塔] 配置域名 + HTTPS（可选，推荐）:${C_OFF}"
+        echo -e "    宝塔面板 → 网站 → 添加站点（域名）→ 反向代理 → 目标 http://127.0.0.1:${PORT}"
+        echo -e "    申请 SSL 证书: 站点设置 → SSL → Let's Encrypt"
+        echo ""
+    fi
+
     echo -e "  ${C_YELLOW}提醒：邮件 SMTP 与彩虹易支付未配置，${C_OFF}"
     echo -e "  ${C_YELLOW}如需启用注册验证码与积分充值，请编辑 .env.docker 后执行:${C_OFF}"
     echo -e "  ${C_YELLOW}  vi .env.docker && ./docker-deploy.sh restart${C_OFF}"
