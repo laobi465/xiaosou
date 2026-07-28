@@ -13,7 +13,7 @@
                     {if condition="$vo.is_recommended == 1"}
                         <span class="recommend-tag">推荐</span>
                     {/if}
-                    <h3 class="package-name">{$vo.name}</h3>
+                    <h3 class="package-name">{$vo.name|htmlspecialchars}</h3>
                     <div class="package-price"><small>¥</small>{$vo.price}</div>
                     <div class="package-credits">{$vo.credits} 积分</div>
                     {if condition="$vo.bonus > 0"}

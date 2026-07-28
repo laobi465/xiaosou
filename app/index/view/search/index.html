@@ -50,8 +50,8 @@
         <div class="ad-top" data-reveal>
             {foreach $ads as $vo}
                 <div class="ad-slot" data-ad-id="{$vo.id}">
-                    <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
-                        <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
+                    <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title|htmlspecialchars}">
+                        <img src="{$vo.image_url}" alt="{$vo.title|htmlspecialchars}" loading="lazy">
                     </a>
                 </div>
             {/foreach}

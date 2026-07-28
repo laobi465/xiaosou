@@ -157,11 +157,8 @@ class CaihongPay
             }
         }
 
-        // 8. 防重放校验: 基于 out_trade_no + Redis 防重, TTL 24 小时
-        if (!$this->markNotifyProcessed($outTradeNo)) {
-            // 同一订单回调已处理过, 判定为重放
-            return false;
-        }
+        // 8. 防重放校验已移至 PayService 事务成功后调用(避免事务失败导致 token 永久占用)
+        // verifyNotify 仅负责验签 + 参数一致性校验
 
         return true;
     }
@@ -204,11 +201,12 @@ class CaihongPay
      *
      * 基于 out_trade_no + Redis SET NX 实现防重, TTL 24 小时。
      * Redis 不可用时降级放行(已由签名 + 订单一致性校验提供保护)。
+     * 应在订单事务成功提交后调用, 避免事务失败导致 token 永久占用。
      *
      * @param string $outTradeNo 商户订单号
      * @return bool true=首次标记成功(可继续处理) false=已处理过(重放)
      */
-    protected function markNotifyProcessed(string $outTradeNo): bool
+    public function markNotifyProcessed(string $outTradeNo): bool
     {
         $redis = $this->redis();
         if ($redis === null) {

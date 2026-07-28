@@ -20,7 +20,7 @@
         </div>
         <div class="form-item">
             <label>任务名称 <span class="required">*</span></label>
-            <input type="text" name="name" value="{$vo.name}" required>
+            <input type="text" name="name" value="{$vo.name|htmlspecialchars}" required>
         </div>
         <div class="form-row">
             <div class="form-item">

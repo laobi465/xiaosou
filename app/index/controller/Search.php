@@ -50,7 +50,7 @@ class Search extends BaseController
             'resourceType' => $type > 0 ? $type : null,
             'panSources'   => $this->filterSources($sources),
             'cursor'       => $cursor,
-            'limit'        => (int) config('pan.page_size', 15),
+            'limit'        => (int) config('pan.page_size.index', 15),
         ]);
 
         // 解析 size 范围(min-max, 单位 MB → 字节), 校验数值合法性

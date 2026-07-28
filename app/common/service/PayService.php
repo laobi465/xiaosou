@@ -203,6 +203,11 @@ class PayService
             return 'fail';
         }
 
+        // 事务成功后标记防重放(避免事务失败导致 token 永久占用, 网关重试无法处理)
+        if (method_exists($this->pay, 'markNotifyProcessed')) {
+            $this->pay->markNotifyProcessed($orderNo);
+        }
+
         return 'success';
     }
 

@@ -59,7 +59,7 @@
             {foreach $list as $vo}
             <tr>
                 <td class="col-id">{$vo.id}</td>
-                <td class="text-ellipsis">{$vo.title}</td>
+                <td class="text-ellipsis">{$vo.title|htmlspecialchars}</td>
                 <td>
                     {if condition="$vo.image_url"}
                     <a href="{$vo.image_url}" target="_blank" rel="noopener noreferrer">查看</a>

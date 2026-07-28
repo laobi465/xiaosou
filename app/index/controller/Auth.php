@@ -245,7 +245,7 @@ class Auth extends BaseController
      */
     public static function sanitizeRedirect(string $url): string
     {
-        if ($url === '' || $url[0] !== '/' || str_starts_with($url, '//')) {
+        if ($url === '' || $url[0] !== '/' || str_starts_with($url, '//') || str_contains($url, '\\')) {
             return '/';
         }
         return $url;

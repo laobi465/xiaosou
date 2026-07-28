@@ -519,4 +519,18 @@ CREATE TABLE `notifications` (
   KEY `idx_user_read_create` (`user_id`, `is_read`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='站内通知';
 
+-- ============================================================
+-- 27. 失败任务表(think-queue failed_jobs)
+-- ============================================================
+DROP TABLE IF EXISTS `failed_jobs`;
+CREATE TABLE `failed_jobs` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `connection` TEXT NOT NULL,
+  `queue`      TEXT NOT NULL,
+  `payload`    LONGTEXT NOT NULL,
+  `exception`  LONGTEXT NOT NULL,
+  `failed_at`  DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='失败任务';
+
 SET FOREIGN_KEY_CHECKS = 1;

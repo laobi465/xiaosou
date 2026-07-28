@@ -30,7 +30,7 @@
                     <select name="pan_source_id" required>
                         <option value="">请选择</option>
                         {foreach $panSources as $vo}
-                            <option value="{$vo.id}">{$vo.name}</option>
+                            <option value="{$vo.id}">{$vo.name|htmlspecialchars}</option>
                         {/foreach}
                     </select>
                 </div>
@@ -77,8 +77,8 @@
                     <tbody>
                         {foreach $panSources as $vo}
                         <tr>
-                            <td>{$vo.name}</td>
-                            <td><code class="code-text">{$vo.code}</code></td>
+                            <td>{$vo.name|htmlspecialchars}</td>
+                            <td><code class="code-text">{$vo.code|htmlspecialchars}</code></td>
                             <td>
                                 {if condition="$vo.is_mainstream == 1"}
                                     <span class="badge badge-info">主流</span>
