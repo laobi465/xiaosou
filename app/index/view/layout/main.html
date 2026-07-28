@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网盘资源搜索</title>
+    <link rel="stylesheet" href="__CSS__/main.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="logo" href="/">网盘搜索</a>
+        <form class="header-search" action="/search" method="get">
+            <input type="text" name="q" placeholder="搜索资源..." autocomplete="off">
+            <button type="submit">搜索</button>
+        </form>
+        <nav class="user-menu">
+            <a href="/user">个人中心</a>
+            <a href="/submit">资源提交</a>
+            <a href="/order/packages">套餐</a>
+            <a href="/auth/login">登录</a>
+            <a href="/auth/register">注册</a>
+        </nav>
+    </div>
+</header>
+
+<main class="site-main">
+    {__CONTENT__}
+</main>
+
+<footer class="site-footer">
+    <p>&copy; {:date('Y')} 网盘资源搜索引擎</p>
+</footer>
+
+<div class="float-ad-slot" id="float-ad">广告位占位</div>
+
+<script src="__JS__/common.js"></script>
+</body>
+</html>

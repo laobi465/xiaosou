@@ -1,0 +1,31 @@
+# ThinkPHP 框架
+/vendor
+/think
+ composer.lock
+
+# 运行时
+/runtime
+/runtime/*
+!/runtime/.gitkeep
+
+# 环境配置
+/.env
+
+# 上传文件
+/public/static/uploads/*
+!/public/static/uploads/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log
