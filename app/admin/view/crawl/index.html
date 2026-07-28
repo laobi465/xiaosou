@@ -1,6 +1,18 @@
-<div class="page-title">采集任务管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-warm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">采集任务管理</h1>
+        <p class="page-subtitle">调度各网盘源的定时采集任务</p>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/crawl">
+<form class="toolbar" method="get" action="/admin/crawl" data-reveal>
     <div class="form-item">
         <input type="number" name="pan_source_id" value="{$pan_source_id}" placeholder="网盘源 ID" class="input-sm">
     </div>
@@ -11,13 +23,13 @@
             <option value="0" {if condition="$enabled === 0 || $enabled === '0'"}selected{/if}>禁用</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
         <a href="/admin/crawl/add" class="btn btn-success btn-sm">新增任务</a>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -65,4 +77,4 @@
     <div class="empty">暂无采集任务</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<nav class="pagination" data-reveal>{$list->render()|raw}</nav>

@@ -1,6 +1,18 @@
-<div class="page-title">新增采集任务</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-mint" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">新增采集任务</h1>
+        <p class="page-subtitle">创建一个定时网盘资源采集任务</p>
+    </div>
+</header>
 
-<div class="form-panel">
+<div class="form-panel" data-reveal>
     <form action="/admin/crawl/add" method="post" data-action="ajax-form" data-redirect="/admin/crawl">
         <div class="form-item">
             <label>网盘源 ID <span class="required">*</span></label>
@@ -11,17 +23,19 @@
             <label>任务名称 <span class="required">*</span></label>
             <input type="text" name="name" required placeholder="如 百度网盘-每日采集">
         </div>
-        <div class="form-item">
-            <label>采集频率（秒）<span class="required">*</span></label>
-            <input type="number" name="frequency" required min="1" value="3600">
-            <div class="hint">每次采集间隔秒数，如 3600 = 1小时</div>
-        </div>
-        <div class="form-item">
-            <label>状态</label>
-            <select name="enabled">
-                <option value="1">启用</option>
-                <option value="0">禁用</option>
-            </select>
+        <div class="form-row">
+            <div class="form-item">
+                <label>采集频率（秒）<span class="required">*</span></label>
+                <input type="number" name="frequency" required min="1" value="3600">
+                <div class="hint">每次采集间隔秒数，如 3600 = 1小时</div>
+            </div>
+            <div class="form-item">
+                <label>状态</label>
+                <select name="enabled">
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
         </div>
         <div class="form-item">
             <label>采集配置（JSON）</label>

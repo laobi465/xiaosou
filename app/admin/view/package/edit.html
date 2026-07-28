@@ -1,41 +1,55 @@
-<div class="page-title">编辑积分套餐</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-warm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </span>
+    <div class="page-head-text">
+        <div class="page-title">编辑积分套餐</div>
+        <div class="page-subtitle">修改套餐的价格、积分、赠送、推荐与上下架状态，调整排序以控制展示顺序</div>
+    </div>
+</header>
 
-<div class="form-panel">
+<div class="form-panel" data-reveal>
     <form action="/admin/package/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/package">
         <div class="form-item">
             <label>套餐名称 <span class="required">*</span></label>
             <input type="text" name="name" value="{$vo.name}" required>
         </div>
-        <div class="form-item">
-            <label>价格（元）<span class="required">*</span></label>
-            <input type="number" name="price" value="{$vo.price}" required step="0.01" min="0">
+        <div class="form-row">
+            <div class="form-item">
+                <label>价格（元）<span class="required">*</span></label>
+                <input type="number" name="price" value="{$vo.price}" required step="0.01" min="0">
+            </div>
+            <div class="form-item">
+                <label>积分数量 <span class="required">*</span></label>
+                <input type="number" name="credits" value="{$vo.credits}" required min="0">
+            </div>
         </div>
-        <div class="form-item">
-            <label>积分数量 <span class="required">*</span></label>
-            <input type="number" name="credits" value="{$vo.credits}" required min="0">
+        <div class="form-row">
+            <div class="form-item">
+                <label>赠送积分</label>
+                <input type="number" name="bonus" value="{$vo.bonus}" min="0">
+            </div>
+            <div class="form-item">
+                <label>是否推荐</label>
+                <select name="is_recommended">
+                    <option value="0" {if condition="$vo.is_recommended == 0"}selected{/if}>否</option>
+                    <option value="1" {if condition="$vo.is_recommended == 1"}selected{/if}>推荐</option>
+                </select>
+            </div>
         </div>
-        <div class="form-item">
-            <label>赠送积分</label>
-            <input type="number" name="bonus" value="{$vo.bonus}" min="0">
-        </div>
-        <div class="form-item">
-            <label>是否推荐</label>
-            <select name="is_recommended">
-                <option value="0" {if condition="$vo.is_recommended == 0"}selected{/if}>否</option>
-                <option value="1" {if condition="$vo.is_recommended == 1"}selected{/if}>推荐</option>
-            </select>
-        </div>
-        <div class="form-item">
-            <label>状态</label>
-            <select name="status">
-                <option value="1" {if condition="$vo.status == 1"}selected{/if}>上架</option>
-                <option value="0" {if condition="$vo.status == 0"}selected{/if}>下架</option>
-            </select>
-        </div>
-        <div class="form-item">
-            <label>排序</label>
-            <input type="number" name="sort" value="{$vo.sort}" min="0">
-            <div class="hint">数值越小越靠前</div>
+        <div class="form-row">
+            <div class="form-item">
+                <label>状态</label>
+                <select name="status">
+                    <option value="1" {if condition="$vo.status == 1"}selected{/if}>上架</option>
+                    <option value="0" {if condition="$vo.status == 0"}selected{/if}>下架</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>排序</label>
+                <input type="number" name="sort" value="{$vo.sort}" min="0">
+                <div class="hint">数值越小越靠前</div>
+            </div>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存</button>

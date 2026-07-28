@@ -1,14 +1,14 @@
 <section class="search-page">
     {/* 顶部搜索框 */}
-    <div class="search-box">
-        <form action="/search" method="get">
-            <input type="text" name="q" value="{$q}" placeholder="搜索资源..." autocomplete="off">
-            <button type="submit">搜索</button>
+    <div class="search-box" data-reveal>
+        <form action="/search" method="get" role="search">
+            <input type="text" name="q" value="{$q}" placeholder="搜索资源..." autocomplete="off" aria-label="搜索关键词">
+            <button type="submit" aria-label="搜索">搜索</button>
         </form>
     </div>
 
     {/* 筛选栏 */}
-    <div class="search-filter">
+    <div class="search-filter" data-reveal>
         <form action="/search" method="get" id="search-filter-form">
             <input type="hidden" name="q" value="{$q}">
             <div class="filter-row">
@@ -47,7 +47,7 @@
 
     {/* 置顶广告 */}
     {if condition="!empty($ads)"}
-        <div class="ad-top">
+        <div class="ad-top" data-reveal>
             {foreach $ads as $vo}
                 <div class="ad-slot" data-ad-id="{$vo.id}">
                     <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
@@ -59,21 +59,21 @@
     {/if}
 
     {/* 结果统计 */}
-    <div class="result-stats">
-        共找到 <strong>{$result->total}</strong> 条结果，耗时 {$result->took}ms
-        {if condition="$result->fromCache"}（缓存）{/if}
+    <div class="result-stats" data-reveal>
+        共找到 <strong class="stats-num">{$result->total}</strong> 条结果，耗时 <span class="stats-took">{$result->took}ms</span>
+        {if condition="$result->fromCache"}<span class="stats-cache">（缓存）</span>{/if}
     </div>
 
     {/* 结果列表 */}
     {if condition="empty($result->list)"}
-        <div class="empty-tip">
+        <div class="empty-tip" data-reveal>
             <p>未找到相关资源</p>
             <a href="/" class="btn btn-small">返回首页</a>
         </div>
     {else/}
-        <div class="result-list">
+        <div class="result-list" data-reveal-group>
             {foreach $result->list as $vo}
-                <div class="result-card">
+                <article class="result-card" data-reveal>
                     <div class="result-card-title">
                         <a href="/resource/{$vo.id}">{$vo.title}</a>
                     </div>
@@ -93,20 +93,20 @@
                             {/switch}
                         </span>
                         {if condition="!empty($vo['file_size'])"}
-                            <span>{:round($vo['file_size']/1048576,2)} MB</span>
+                            <span class="meta-item">{:round($vo['file_size']/1048576,2)} MB</span>
                         {/if}
                         {if condition="!empty($vo['file_format'])"}
-                            <span>{$vo.file_format}</span>
+                            <span class="meta-item">{$vo.file_format}</span>
                         {/if}
-                        <span>{$vo.create_time|substr=0,10}</span>
+                        <span class="meta-item">{$vo.create_time|substr=0,10}</span>
                     </div>
-                </div>
+                </article>
             {/foreach}
         </div>
 
         {/* 游标分页 */}
         {if condition="$result->nextCursor > 0"}
-            <div class="pagination">
+            <div class="pagination" data-reveal>
                 <a class="pagination-next" href="/search?q={$q|urlencode}&amp;type={$type}&amp;sources={$sources|urlencode}&amp;cursor={$result->nextCursor}">下一页</a>
             </div>
         {/if}

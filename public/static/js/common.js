@@ -1,5 +1,7 @@
 /* ============================================================
    网盘资源搜索 - 前台公共脚本 (原生 ES6, 无框架)
+   美学方向：新拟物柔和 - 微交互增强
+   保留所有业务逻辑，仅增强交互体验
    ============================================================ */
 (function () {
     'use strict';
@@ -50,7 +52,7 @@
         return json;
     }
 
-    /* ---------- Toast 提示 ---------- */
+    /* ---------- Toast 提示 (增强：入场/出场动画 + CSS 图标) ---------- */
     function ensureToastWrap() {
         var wrap = document.querySelector('.toast-wrap');
         if (!wrap) {
@@ -65,14 +67,31 @@
         var wrap = ensureToastWrap();
         var el = document.createElement('div');
         el.className = 'toast' + (type ? ' toast-' + type : '');
-        el.textContent = message;
+        // CSS 绘制图标（非 emoji）
+        var iconHtml = '';
+        if (type === 'success') {
+            iconHtml = '<span class="toast-icon toast-icon-success" aria-hidden="true"></span>';
+        } else if (type === 'error') {
+            iconHtml = '<span class="toast-icon toast-icon-error" aria-hidden="true"></span>';
+        } else {
+            iconHtml = '<span class="toast-icon toast-icon-info" aria-hidden="true"></span>';
+        }
+        el.innerHTML = iconHtml + '<span class="toast-text">' + escapeHtml(message) + '</span>';
         wrap.appendChild(el);
         // 触发显示动画
         requestAnimationFrame(function () { el.classList.add('show'); });
         setTimeout(function () {
             el.classList.remove('show');
-            setTimeout(function () { el.remove(); }, 250);
+            el.classList.add('hide');
+            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 250);
         }, 2600);
+    }
+
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     /* ---------- 验证码倒计时 ---------- */
@@ -82,12 +101,14 @@
         var originalText = btn.getAttribute('data-original-text') || btn.textContent;
         btn.setAttribute('data-original-text', originalText);
         btn.disabled = true;
+        btn.classList.add('is-counting');
         btn.textContent = left + 's 后重发';
         var timer = setInterval(function () {
             left--;
             if (left <= 0) {
                 clearInterval(timer);
                 btn.disabled = false;
+                btn.classList.remove('is-counting');
                 btn.textContent = originalText;
             } else {
                 btn.textContent = left + 's 后重发';
@@ -110,6 +131,7 @@
                 return;
             }
             btn.disabled = true;
+            btn.classList.add('is-loading');
             var oldText = btn.textContent;
             btn.textContent = '发送中...';
             try {
@@ -126,6 +148,8 @@
                 toast('网络异常,请重试', 'error');
                 btn.disabled = false;
                 btn.textContent = oldText;
+            } finally {
+                btn.classList.remove('is-loading');
             }
         });
     }
@@ -147,6 +171,62 @@
         });
     }
 
+    /* ---------- 微交互增强：卡片 hover 抬起 ---------- */
+    function initCardHover() {
+        var cards = document.querySelectorAll('.resource-card, .result-card, .package-card, .banner-item');
+        cards.forEach(function (card) {
+            card.addEventListener('mouseenter', function () { card.classList.add('is-hover'); });
+            card.addEventListener('mouseleave', function () { card.classList.remove('is-hover'); });
+        });
+    }
+
+    /* ---------- 微交互增强：staggered 入场动画 ---------- */
+    function initStaggeredReveal() {
+        var revealGroups = document.querySelectorAll('[data-reveal-group]');
+        revealGroups.forEach(function (group) {
+            var items = group.querySelectorAll('[data-reveal]');
+            items.forEach(function (item, idx) {
+                item.style.animationDelay = (idx * 60) + 'ms';
+                item.classList.add('reveal-item');
+                requestAnimationFrame(function () { item.classList.add('reveal-in'); });
+            });
+        });
+        // 单独的 reveal 元素
+        var singles = document.querySelectorAll('[data-reveal]:not([data-reveal-group] [data-reveal])');
+        singles.forEach(function (item, idx) {
+            item.style.animationDelay = (idx * 60) + 'ms';
+            item.classList.add('reveal-item');
+            requestAnimationFrame(function () { item.classList.add('reveal-in'); });
+        });
+    }
+
+    /* ---------- 微交互增强：按钮加载状态 ---------- */
+    function initButtonLoading() {
+        var btns = document.querySelectorAll('[data-loading-text]');
+        btns.forEach(function (btn) {
+            var form = btn.closest('form');
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                if (btn.disabled) return;
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+                var original = btn.innerHTML;
+                btn.setAttribute('data-original-html', original);
+                var loadingText = btn.getAttribute('data-loading-text') || '提交中...';
+                btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span><span>' + escapeHtml(loadingText) + '</span>';
+            });
+        });
+    }
+
+    /* ---------- 微交互增强：输入框聚焦光晕 ---------- */
+    function initInputFocus() {
+        var inputs = document.querySelectorAll('.form input, .form select, .form textarea, .header-search input, .home-search input, .search-box input');
+        inputs.forEach(function (input) {
+            input.addEventListener('focus', function () { input.closest('.form-item, .header-search, .home-search, .search-box')?.classList.add('is-focused'); });
+            input.addEventListener('blur', function () { input.closest('.form-item, .header-search, .home-search, .search-box')?.classList.remove('is-focused'); });
+        });
+    }
+
     /* ---------- 暴露到全局 ---------- */
     window.App = {
         ajaxPost: ajaxPost,
@@ -155,7 +235,11 @@
         startCountdown: startCountdown,
         bindSendCode: bindSendCode,
         trackAdImpression: trackAdImpression,
-        initAdImpressions: initAdImpressions
+        initAdImpressions: initAdImpressions,
+        initCardHover: initCardHover,
+        initStaggeredReveal: initStaggeredReveal,
+        initButtonLoading: initButtonLoading,
+        initInputFocus: initInputFocus
     };
 
     /* ---------- DOM Ready: 自动初始化 ---------- */
@@ -165,5 +249,9 @@
     }
     ready(function () {
         initAdImpressions();
+        initCardHover();
+        initStaggeredReveal();
+        initButtonLoading();
+        initInputFocus();
     });
 })();

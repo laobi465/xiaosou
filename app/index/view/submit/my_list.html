@@ -1,25 +1,33 @@
 <section class="user-center">
-    <div class="user-tabs">
+
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList" class="active">我的提交</a>
         <a href="/order/packages">充值套餐</a>
-    </div>
+    </nav>
 
-    <div class="page-header">
+    <div class="page-header" data-reveal>
         <h1>我的提交</h1>
-        <a href="/submit" class="btn btn-primary btn-small" style="margin-top:8px">+ 提交新资源</a>
+        <a href="/submit" class="btn btn-primary btn-small btn-has-plus">
+            提交新资源
+        </a>
     </div>
 
     {/* 提交列表 */}
     {if condition="$submissions->isEmpty()"}
-        <div class="empty-tip">
+        <div class="empty-tip" data-reveal>
+            <div class="empty-icon" aria-hidden="true">
+                <span class="empty-icon-dot"></span>
+            </div>
             <p>暂无提交记录</p>
-            <a href="/submit" class="btn btn-primary btn-small">去提交资源</a>
+            <a href="/submit" class="btn btn-primary btn-small btn-has-arrow">
+                去提交资源
+            </a>
         </div>
     {else/}
-        <div class="data-table-wrap">
+        <div class="data-table-wrap" data-reveal>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -35,7 +43,7 @@
                     <tr>
                         <td class="wrap">{$vo.title}</td>
                         <td>
-                            {if condition="$vo->panSource"}{$vo.panSource.name}{else/}未知{/if}
+                            {if condition="$vo->panSource"}{$vo.panSource.name}{else/}<span class="text-muted">未知</span>{/if}
                         </td>
                         <td>
                             {switch $vo.resource_type}
@@ -56,7 +64,7 @@
                                 {default/}<span class="badge badge-default">未知</span>
                             {/switch}
                         </td>
-                        <td>{$vo.create_time|substr=0,16}</td>
+                        <td class="cell-mono">{$vo.create_time|substr=0,16}</td>
                     </tr>
                     {/foreach}
                 </tbody>
@@ -64,4 +72,5 @@
         </div>
         <div class="pagination">{$submissions->render()|raw}</div>
     {/if}
+
 </section>

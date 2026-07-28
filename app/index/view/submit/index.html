@@ -1,29 +1,32 @@
 <section class="user-center">
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
+    </nav>
+
+    <div class="page-header" data-reveal>
+        <h1>资源提交</h1>
     </div>
 
-    <div class="page-header"><h1>资源提交</h1></div>
-
     {/* 提交表单 */}
-    <div class="detail-block">
-        <h3>提交新资源</h3>
+    <div class="detail-block" data-reveal>
+        <h2>提交新资源</h2>
+        <p class="block-desc">分享网盘资源，审核通过后可获得积分奖励</p>
         <form class="form" id="submit-form">
             <div class="form-item">
-                <label>资源标题 <span style="color:#e04848">*</span></label>
+                <label>资源标题 <span class="text-danger">*</span></label>
                 <input type="text" name="title" placeholder="请输入资源标题" required>
             </div>
             <div class="form-item">
-                <label>分享链接 <span style="color:#e04848">*</span></label>
+                <label>分享链接 <span class="text-danger">*</span></label>
                 <input type="text" name="share_url" placeholder="请输入网盘分享链接" required>
             </div>
             <div class="form-row">
                 <div class="form-item">
-                    <label>网盘来源 <span style="color:#e04848">*</span></label>
+                    <label>网盘来源 <span class="text-danger">*</span></label>
                     <select name="pan_source_id" required>
                         <option value="">请选择</option>
                         {foreach $panSources as $vo}
@@ -32,7 +35,7 @@
                     </select>
                 </div>
                 <div class="form-item">
-                    <label>资源类型 <span style="color:#e04848">*</span></label>
+                    <label>资源类型 <span class="text-danger">*</span></label>
                     <select name="resource_type" required>
                         <option value="">请选择</option>
                         <option value="1">影视</option>
@@ -53,7 +56,7 @@
                 <label>资源简介</label>
                 <textarea name="intro" placeholder="简要描述资源内容"></textarea>
             </div>
-            <div>
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">提交</button>
             </div>
             <p class="form-hint">提交后将在审核通过后公开展示，审核通过可获得积分奖励。</p>
@@ -61,10 +64,10 @@
     </div>
 
     {/* 网盘源列表 */}
-    <div class="detail-block">
-        <h3>支持的网盘源</h3>
+    <div class="detail-block" data-reveal>
+        <h2>支持的网盘源</h2>
         {if condition="empty($panSources)"}
-            <p style="color:#999">暂无可用网盘源</p>
+            <div class="empty-tip"><p>暂无可用网盘源</p></div>
         {else/}
             <div class="data-table-wrap">
                 <table class="data-table">
@@ -75,7 +78,7 @@
                         {foreach $panSources as $vo}
                         <tr>
                             <td>{$vo.name}</td>
-                            <td>{$vo.code}</td>
+                            <td><code class="code-text">{$vo.code}</code></td>
                             <td>
                                 {if condition="$vo.is_mainstream == 1"}
                                     <span class="badge badge-info">主流</span>

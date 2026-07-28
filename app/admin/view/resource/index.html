@@ -1,6 +1,17 @@
-<div class="page-title">资源管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-blue" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 22 8.5 12 15 2 8.5 12 2"></polygon>
+            <polyline points="2 15.5 12 22 22 15.5"></polyline>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">资源管理</h1>
+        <p class="page-subtitle">维护网盘资源的标题、类型与发布状态</p>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/resource">
+<form class="toolbar" method="get" action="/admin/resource" data-reveal>
     <div class="form-item">
         <input type="text" name="title" value="{$title}" placeholder="搜索资源标题" class="input-sm">
     </div>
@@ -25,13 +36,13 @@
             <option value="3" {if condition="$status == 3"}selected{/if}>驳回</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
         <a href="/admin/resource/add" class="btn btn-success btn-sm">新增资源</a>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -92,4 +103,4 @@
     <div class="empty">暂无资源数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<nav class="pagination" data-reveal>{$list->render()|raw}</nav>

@@ -1,23 +1,37 @@
-<div class="page-title">敏感词管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-warm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">敏感词管理</h1>
+        <p class="page-subtitle">维护资源/搜索过滤词库，支持单条新增与批量导入</p>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/sensitive/add" class="btn btn-success btn-sm">新增</a>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/sensitive">
+<form class="toolbar" method="get" action="/admin/sensitive" data-reveal>
     <div class="form-item">
+        <label>关键词</label>
         <input type="text" name="word" value="{$word}" placeholder="搜索敏感词" class="input-sm">
     </div>
     <div class="form-item">
+        <label>状态</label>
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>启用</option>
             <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>禁用</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
-        <a href="/admin/sensitive/add" class="btn btn-success btn-sm">新增</a>
     </div>
 </form>
 
-<div class="panel" style="margin-bottom:16px;">
+<section class="panel" data-reveal>
     <div class="panel-header"><h3>批量导入</h3></div>
     <div class="panel-body">
         <form action="/admin/sensitive/import" method="post" data-action="ajax-form" data-redirect="/admin/sensitive">
@@ -27,9 +41,9 @@
             <button type="submit" class="btn btn-primary btn-sm">批量导入</button>
         </form>
     </div>
-</div>
+</section>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -63,4 +77,4 @@
     <div class="empty">暂无敏感词数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

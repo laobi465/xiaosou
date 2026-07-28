@@ -1,6 +1,19 @@
-<div class="page-title">广告位管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-warm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M8 5v4"/>
+            <path d="M16 5v4"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">广告位管理</h1>
+        <p class="page-subtitle">维护站点各页面广告位槽位配置与启用状态</p>
+    </div>
+</header>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -44,4 +57,4 @@
     <div class="empty">暂无广告位数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

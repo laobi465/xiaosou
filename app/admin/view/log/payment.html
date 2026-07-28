@@ -1,17 +1,32 @@
-<div class="page-title">日志查看</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-amber" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 10h20"/>
+            <path d="M7 15h2"/>
+            <path d="M12 15h6"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">日志查看</h1>
+        <p class="page-subtitle">记录订单支付流程中的创建、回调、同步与退款事件</p>
+    </div>
+</header>
 
-<div class="toolbar" style="gap:4px;">
+<nav class="log-toolbar" data-reveal aria-label="日志类型切换">
     <a href="/admin/log/admin" class="btn btn-sm">管理员操作</a>
     <a href="/admin/log/user_login" class="btn btn-sm">用户登录</a>
     <a href="/admin/log/payment" class="btn btn-sm btn-primary">支付日志</a>
     <a href="/admin/log/exception" class="btn btn-sm">异常日志</a>
-</div>
+</nav>
 
-<form class="toolbar" method="get" action="/admin/log/payment">
+<form class="toolbar" method="get" action="/admin/log/payment" data-reveal>
     <div class="form-item">
+        <label>订单号</label>
         <input type="text" name="order_no" value="{$order_no}" placeholder="搜索订单号" class="input-sm">
     </div>
     <div class="form-item">
+        <label>事件</label>
         <select name="event">
             <option value="">全部事件</option>
             <option value="create" {if condition="$event eq 'create'"}selected{/if}>创建</option>
@@ -20,12 +35,12 @@
             <option value="refund" {if condition="$event eq 'refund'"}selected{/if}>退款</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -52,4 +67,4 @@
     <div class="empty">暂无支付日志</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

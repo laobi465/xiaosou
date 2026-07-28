@@ -1,9 +1,9 @@
 <section>
-    <div class="pay-result pay-status-{switch $result.status}{case 1}success{/case}{case -1}fail{/case}{case 3}fail{/case}{default/}pending{/switch}">
-        <div class="pay-status-icon">
-            {if condition="$result.status == 1"}✓
-            {elseif condition="$result.status == 0 || $result.status == 2"/}⏳
-            {else/}✕
+    <div class="pay-result pay-status-{switch $result.status}{case 1}success{/case}{case -1}fail{/case}{case 3}fail{/case}{default/}pending{/switch}" data-reveal>
+        <div class="pay-icon" aria-hidden="true">
+            {if condition="$result.status == 1"}
+            {elseif condition="$result.status == 0 || $result.status == 2"/}
+            {else/}
             {/if}
         </div>
         <h2>
@@ -16,11 +16,13 @@
             {/if}
         </h2>
         {if condition="$result.status != -1"}
-            <p class="pay-info">订单号：{$result.order_no}</p>
-            <p class="pay-info">积分到账：{$result.credits}</p>
+            <div class="pay-order-info">
+                <p class="pay-info">订单号：<code class="code-text">{$result.order_no}</code></p>
+                <p class="pay-info">积分到账：<span class="pay-info-value">{$result.credits}</span></p>
+            </div>
         {/if}
         {if condition="$result.status == 0"}
-            <p class="form-hint" style="margin-top:12px">支付结果正在处理中，请稍后在订单列表查看最终状态。</p>
+            <p class="form-hint pay-hint">支付结果正在处理中，请稍后在订单列表查看最终状态。</p>
         {/if}
         <div class="pay-actions">
             <a href="/" class="btn btn-primary">返回首页</a>

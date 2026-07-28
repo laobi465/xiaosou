@@ -1,6 +1,7 @@
 <section class="detail-page">
-    {/* 资源头部信息 */}
-    <div class="detail-header">
+
+    {/* 资源头部信息：封面 + 信息双列 */}
+    <header class="detail-header" data-reveal>
         {if condition="!empty($resource['cover'])"}
             <img class="detail-cover" src="{$resource.cover}" alt="{$resource.title}">
         {/if}
@@ -19,77 +20,87 @@
                     {/switch}
                 </span>
                 {if condition="!empty($resource['file_size'])"}
-                    <span>大小：{:round($resource['file_size']/1048576,2)} MB</span>
+                    <span class="meta-pill">大小：{:round($resource['file_size']/1048576,2)} MB</span>
                 {/if}
                 {if condition="!empty($resource['file_format'])"}
-                    <span>格式：{$resource.file_format}</span>
+                    <span class="meta-pill">格式：{$resource.file_format}</span>
                 {/if}
-                <span>浏览：{$resource.view_count}</span>
-                <span>更新：{$resource.create_time|substr=0,10}</span>
+                <span class="meta-pill">浏览：{$resource.view_count}</span>
+                <span class="meta-pill">更新：{$resource.create_time|substr=0,10}</span>
             </div>
             {if condition="!empty($resource['intro'])"}
                 <div class="detail-intro">{$resource.intro}</div>
             {/if}
         </div>
-    </div>
+    </header>
 
-    {/* 网盘来源列表 */}
-    <div class="detail-block">
-        <h3>网盘来源</h3>
+    {/* 网盘来源列表：凹陷块 */}
+    <section class="detail-block" data-reveal>
+        <h2>网盘来源</h2>
         {if condition="empty($linkSources)"}
-            <p style="color:#999">暂无可用来源</p>
+            <p class="detail-empty-tip">暂无可用来源</p>
         {else/}
-            <div class="link-list">
+            <div class="link-list" data-reveal-group>
                 {foreach $linkSources as $vo}
-                    <div class="link-item">
-                        <span class="link-source">{$vo.pan_source}</span>
-                        <button type="button" class="btn btn-primary btn-small view-link-btn" data-link-id="{$vo.id}">查看完整链接</button>
+                    <div class="link-item" data-reveal>
+                        <span class="link-source">
+                            <span class="link-source-dot" aria-hidden="true"></span>
+                            {$vo.pan_source}
+                        </span>
+                        <button type="button" class="btn btn-primary btn-small view-link-btn btn-has-arrow" data-link-id="{$vo.id}">
+                            查看完整链接
+                        </button>
                     </div>
                 {/foreach}
             </div>
-            <p class="form-hint" style="margin-top:10px">查看完整链接需扣除积分，请确认后点击。</p>
+            <p class="form-hint">查看完整链接需扣除积分，请确认后点击。</p>
         {/if}
-    </div>
+    </section>
 
     {/* 广告位 */}
     {if condition="!empty($ads)"}
-        <div class="detail-block">
-            <h3>推广</h3>
-            {foreach $ads as $vo}
-                <div class="ad-slot" data-ad-id="{$vo.id}" style="margin-bottom:8px">
-                    <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
-                        <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
-                    </a>
-                </div>
-            {/foreach}
-        </div>
-    {/if}
-
-    {/* 相关推荐 */}
-    {if condition="!empty($related)"}
-        <div class="detail-block">
-            <h3>相关推荐</h3>
-            <div class="related-list">
-                {foreach $related as $vo}
-                    <div class="related-item">
-                        <a href="/resource/{$vo.id}">{$vo.title}</a>
-                        <span style="color:#999;font-size:12px;margin-left:8px">{$vo.create_time|substr=0,10}</span>
+        <section class="detail-block" data-reveal>
+            <h2>推广</h2>
+            <div class="ad-list" data-reveal-group>
+                {foreach $ads as $vo}
+                    <div class="ad-slot" data-ad-id="{$vo.id}" data-reveal>
+                        <a href="/ad/click/{$vo.id}" target="_blank" rel="noopener" title="{$vo.title}">
+                            <img src="{$vo.image_url}" alt="{$vo.title}" loading="lazy">
+                        </a>
                     </div>
                 {/foreach}
             </div>
-        </div>
+        </section>
     {/if}
 
-    {/* 失效举报 */}
-    <div class="detail-block">
-        <h3>资源失效举报</h3>
+    {/* 相关推荐：网格布局 */}
+    {if condition="!empty($related)"}
+        <section class="detail-block" data-reveal>
+            <h2>相关推荐</h2>
+            <div class="related-list" data-reveal-group>
+                {foreach $related as $vo}
+                    <div class="related-item" data-reveal>
+                        <a href="/resource/{$vo.id}" class="related-link">{$vo.title}</a>
+                        <span class="related-date">{$vo.create_time|substr=0,10}</span>
+                    </div>
+                {/foreach}
+            </div>
+        </section>
+    {/if}
+
+    {/* 失效举报：凹陷表单 */}
+    <section class="detail-block" data-reveal>
+        <h2>资源失效举报</h2>
         <form class="report-form" id="report-form" data-resource-id="{$resource.id}">
             <textarea name="reason" placeholder="请描述失效原因，如：链接已失效、内容违规等" required></textarea>
-            <div>
-                <button type="submit" class="btn btn-primary">提交举报</button>
+            <div class="report-actions">
+                <button type="submit" class="btn btn-primary btn-has-check">
+                    提交举报
+                </button>
             </div>
         </form>
-    </div>
+    </section>
+
 </section>
 
 <script>

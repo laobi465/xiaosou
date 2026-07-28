@@ -1,47 +1,67 @@
-<div class="page-title">
-    新建投放 -
-    {if condition="$slot.code == 'home_banner'"}首页 Banner
-    {elseif condition="$slot.code == 'search_top'"/}搜索结果置顶
-    {elseif condition="$slot.code == 'detail_popup'"/}详情页弹窗
-    {elseif condition="$slot.code == 'bottom_float'"/}底部浮动
-    {else/}{$slot.name}
-    {/if}
-    <a href="/admin/ad/placements/{$slot.id}" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
-</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-mint" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v8"/>
+            <path d="M8 12h8"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">
+            新建投放 -
+            {if condition="$slot.code == 'home_banner'"}首页 Banner
+            {elseif condition="$slot.code == 'search_top'"/}搜索结果置顶
+            {elseif condition="$slot.code == 'detail_popup'"/}详情页弹窗
+            {elseif condition="$slot.code == 'bottom_float'"/}底部浮动
+            {else/}{$slot.name}
+            {/if}
+        </h1>
+        <p class="page-subtitle">填写投放素材信息，保存后立即生效</p>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/ad/placements/{$slot.id}" class="btn btn-sm">返回列表</a>
+    </div>
+</header>
 
-<div class="form-panel">
+<div class="form-panel" data-reveal>
     <form action="/admin/ad/create/{$slot.id}" method="post" data-action="ajax-form" data-redirect="/admin/ad/placements/{$slot.id}">
         <div class="form-item">
             <label>投放标题 <span class="required">*</span></label>
             <input type="text" name="title" required placeholder="广告标题">
         </div>
-        <div class="form-item">
-            <label>图片地址</label>
-            <input type="text" name="image_url" placeholder="广告图片 URL">
+        <div class="form-row">
+            <div class="form-item">
+                <label>图片地址</label>
+                <input type="text" name="image_url" placeholder="广告图片 URL">
+            </div>
+            <div class="form-item">
+                <label>跳转链接</label>
+                <input type="text" name="link_url" placeholder="https://...">
+            </div>
         </div>
-        <div class="form-item">
-            <label>跳转链接</label>
-            <input type="text" name="link_url" placeholder="https://...">
+        <div class="form-row">
+            <div class="form-item">
+                <label>开始时间</label>
+                <input type="datetime-local" name="start_at">
+            </div>
+            <div class="form-item">
+                <label>结束时间</label>
+                <input type="datetime-local" name="end_at">
+            </div>
         </div>
-        <div class="form-item">
-            <label>开始时间</label>
-            <input type="datetime-local" name="start_at">
-        </div>
-        <div class="form-item">
-            <label>结束时间</label>
-            <input type="datetime-local" name="end_at">
-        </div>
-        <div class="form-item">
-            <label>权重</label>
-            <input type="number" name="weight" value="1" min="0">
-            <div class="hint">数值越大展示概率越高</div>
-        </div>
-        <div class="form-item">
-            <label>状态</label>
-            <select name="status">
-                <option value="1">上线</option>
-                <option value="0">下线</option>
-            </select>
+        <div class="form-row">
+            <div class="form-item">
+                <label>权重</label>
+                <input type="number" name="weight" value="1" min="0">
+                <div class="hint">数值越大展示概率越高</div>
+            </div>
+            <div class="form-item">
+                <label>状态</label>
+                <select name="status">
+                    <option value="1">上线</option>
+                    <option value="0">下线</option>
+                </select>
+            </div>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存</button>

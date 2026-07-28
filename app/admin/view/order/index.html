@@ -1,6 +1,14 @@
-<div class="page-title">订单管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-amber" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="11" y2="9"/></svg>
+    </span>
+    <div class="page-head-text">
+        <div class="page-title">订单管理</div>
+        <div class="page-subtitle">查看支付订单流水，按订单号与支付状态检索，支持手动补单与退款</div>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/order">
+<form class="toolbar" method="get" action="/admin/order" data-reveal>
     <div class="form-item">
         <input type="text" name="order_no" value="{$order_no}" placeholder="搜索订单号" class="input-sm">
     </div>
@@ -13,12 +21,12 @@
             <option value="3" {if condition="$status == 3"}selected{/if}>已关闭</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>

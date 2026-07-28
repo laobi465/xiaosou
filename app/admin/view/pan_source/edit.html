@@ -1,32 +1,47 @@
-<div class="page-title">编辑网盘源</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-amber" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">编辑网盘源</h1>
+        <p class="page-subtitle">修改网盘源配置并保存</p>
+    </div>
+</header>
 
-<div class="form-panel">
+<div class="form-panel" data-reveal>
     <form action="/admin/pan_source/edit/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/pan_source">
-        <div class="form-item">
-            <label>名称 <span class="required">*</span></label>
-            <input type="text" name="name" value="{$vo.name}" required>
-        </div>
-        <div class="form-item">
-            <label>代码 <span class="required">*</span></label>
-            <input type="text" name="code" value="{$vo.code}" required>
+        <div class="form-row">
+            <div class="form-item">
+                <label>名称 <span class="required">*</span></label>
+                <input type="text" name="name" value="{$vo.name}" required>
+            </div>
+            <div class="form-item">
+                <label>代码 <span class="required">*</span></label>
+                <input type="text" name="code" value="{$vo.code}" required>
+            </div>
         </div>
         <div class="form-item">
             <label>采集器类名</label>
             <input type="text" name="crawler_class" value="{$vo.crawler_class}">
         </div>
-        <div class="form-item">
-            <label>是否主流</label>
-            <select name="is_mainstream">
-                <option value="1" {if condition="$vo.is_mainstream == 1"}selected{/if}>主流</option>
-                <option value="0" {if condition="$vo.is_mainstream == 0"}selected{/if}>小众</option>
-            </select>
-        </div>
-        <div class="form-item">
-            <label>状态</label>
-            <select name="enabled">
-                <option value="1" {if condition="$vo.enabled == 1"}selected{/if}>启用</option>
-                <option value="0" {if condition="$vo.enabled == 0"}selected{/if}>禁用</option>
-            </select>
+        <div class="form-row">
+            <div class="form-item">
+                <label>是否主流</label>
+                <select name="is_mainstream">
+                    <option value="1" {if condition="$vo.is_mainstream == 1"}selected{/if}>主流</option>
+                    <option value="0" {if condition="$vo.is_mainstream == 0"}selected{/if}>小众</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>状态</label>
+                <select name="enabled">
+                    <option value="1" {if condition="$vo.enabled == 1"}selected{/if}>启用</option>
+                    <option value="0" {if condition="$vo.enabled == 0"}selected{/if}>禁用</option>
+                </select>
+            </div>
         </div>
         <div class="form-item">
             <label>排序</label>

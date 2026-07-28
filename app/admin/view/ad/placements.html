@@ -1,29 +1,45 @@
-<div class="page-title">
-    投放列表 -
-    {if condition="$slot.code == 'home_banner'"}首页 Banner
-    {elseif condition="$slot.code == 'search_top'"/}搜索结果置顶
-    {elseif condition="$slot.code == 'detail_popup'"/}详情页弹窗
-    {elseif condition="$slot.code == 'bottom_float'"/}底部浮动
-    {else/}{$slot.name}
-    {/if}
-    <a href="/admin/ad" class="btn btn-sm" style="margin-left:12px;">返回广告位</a>
-</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-pink" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h6v6H4z"/>
+            <path d="M14 4h6v6h-6z"/>
+            <path d="M4 14h6v6H4z"/>
+            <path d="M14 14h6v6h-6z"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">
+            投放列表 -
+            {if condition="$slot.code == 'home_banner'"}首页 Banner
+            {elseif condition="$slot.code == 'search_top'"/}搜索结果置顶
+            {elseif condition="$slot.code == 'detail_popup'"/}详情页弹窗
+            {elseif condition="$slot.code == 'bottom_float'"/}底部浮动
+            {else/}{$slot.name}
+            {/if}
+        </h1>
+        <p class="page-subtitle">管理该广告位下的所有投放素材与上下线状态</p>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/ad" class="btn btn-sm">返回广告位</a>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/ad/placements/{$slot.id}">
+<form class="toolbar" method="get" action="/admin/ad/placements/{$slot.id}" data-reveal>
     <div class="form-item">
+        <label>状态筛选</label>
         <select name="status">
             <option value="">全部状态</option>
             <option value="1" {if condition="$status == 1"}selected{/if}>上线</option>
             <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>下线</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
         <a href="/admin/ad/create/{$slot.id}" class="btn btn-success btn-sm">新建投放</a>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -75,4 +91,4 @@
     <div class="empty">暂无投放数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

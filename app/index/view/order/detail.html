@@ -1,66 +1,70 @@
 <section class="user-center">
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
+    </nav>
+
+    <div class="page-header" data-reveal>
+        <h1>订单详情</h1>
     </div>
 
-    <div class="page-header"><h1>订单详情</h1></div>
-
     {/* 订单信息 */}
-    <div class="detail-block">
-        <h3>基本信息</h3>
-        <table class="data-table">
-            <tbody>
-                <tr><th style="width:120px">订单号</th><td>{$order.order_no}</td></tr>
-                <tr><th>套餐</th><td>{if condition="$order->package"}{$order.package.name}{else/}套餐已删除{/if}</td></tr>
-                <tr><th>金额</th><td>¥{$order.amount}</td></tr>
-                <tr><th>应到积分</th><td>{$order.credits}</td></tr>
-                <tr>
-                    <th>状态</th>
-                    <td>
-                        {switch $order.status}
-                            {case 0}<span class="badge badge-warning">待支付</span>{/case}
-                            {case 1}<span class="badge badge-success">已支付</span>{/case}
-                            {case 2}<span class="badge badge-danger">已退款</span>{/case}
-                            {case 3}<span class="badge badge-default">已关闭</span>{/case}
-                            {default/}<span class="badge badge-default">未知</span>
-                        {/switch}
-                    </td>
-                </tr>
-                {if condition="!empty($order['pay_at'])"}
-                    <tr><th>支付时间</th><td>{$order.pay_at}</td></tr>
-                {/if}
-                {if condition="!empty($order['pay_type'])"}
-                    <tr><th>支付方式</th><td>{$order.pay_type}</td></tr>
-                {/if}
-                {if condition="!empty($order['trade_no'])"}
-                    <tr><th>第三方流水号</th><td class="wrap">{$order.trade_no}</td></tr>
-                {/if}
-                <tr><th>下单时间</th><td>{$order.create_time}</td></tr>
-                {if condition="$order.status == 0"}
-                    <tr><th>过期时间</th><td>{$order.expire_at}</td></tr>
-                {/if}
-            </tbody>
-        </table>
+    <div class="detail-block" data-reveal>
+        <h2>基本信息</h2>
+        <div class="data-table-wrap">
+            <table class="info-table">
+                <tbody>
+                    <tr><th>订单号</th><td><code class="code-text">{$order.order_no}</code></td></tr>
+                    <tr><th>套餐</th><td>{if condition="$order->package"}{$order.package.name}{else/}套餐已删除{/if}</td></tr>
+                    <tr><th>金额</th><td class="amount-cell">¥{$order.amount}</td></tr>
+                    <tr><th>应到积分</th><td>{$order.credits}</td></tr>
+                    <tr>
+                        <th>状态</th>
+                        <td>
+                            {switch $order.status}
+                                {case 0}<span class="badge badge-warning">待支付</span>{/case}
+                                {case 1}<span class="badge badge-success">已支付</span>{/case}
+                                {case 2}<span class="badge badge-danger">已退款</span>{/case}
+                                {case 3}<span class="badge badge-default">已关闭</span>{/case}
+                                {default/}<span class="badge badge-default">未知</span>
+                            {/switch}
+                        </td>
+                    </tr>
+                    {if condition="!empty($order['pay_at'])"}
+                        <tr><th>支付时间</th><td>{$order.pay_at}</td></tr>
+                    {/if}
+                    {if condition="!empty($order['pay_type'])"}
+                        <tr><th>支付方式</th><td>{$order.pay_type}</td></tr>
+                    {/if}
+                    {if condition="!empty($order['trade_no'])"}
+                        <tr><th>第三方流水号</th><td><code class="code-text wrap">{$order.trade_no}</code></td></tr>
+                    {/if}
+                    <tr><th>下单时间</th><td>{$order.create_time}</td></tr>
+                    {if condition="$order.status == 0"}
+                        <tr><th>过期时间</th><td>{$order.expire_at}</td></tr>
+                    {/if}
+                </tbody>
+            </table>
+        </div>
 
         {/* 支付按钮 */}
         {if condition="$order.status == 0 && strtotime($order['expire_at']) > time()"}
-            <div style="margin-top:16px">
+            <div class="form-actions">
                 <a href="/pay/create/{$order.package_id}" class="btn btn-primary">立即支付</a>
             </div>
         {elseif condition="$order.status == 0"/}
-            <p class="form-hint" style="margin-top:12px">该订单已过期，请重新购买套餐。</p>
+            <p class="form-hint detail-hint">该订单已过期，请重新购买套餐。</p>
         {/if}
     </div>
 
     {/* 支付日志 */}
-    <div class="detail-block">
-        <h3>支付日志</h3>
+    <div class="detail-block" data-reveal>
+        <h2>支付日志</h2>
         {if condition="empty($logs)"}
-            <p style="color:#999">暂无日志</p>
+            <div class="empty-tip"><p>暂无日志</p></div>
         {else/}
             <div class="data-table-wrap">
                 <table class="data-table">
@@ -71,17 +75,19 @@
                         {foreach $logs as $vo}
                         <tr>
                             <td>
-                                {switch $vo.event}
-                                    {case 1}create{/case}
-                                    {case 2}notify{/case}
-                                    {case 3}sync{/case}
-                                    {case 4}refund{/case}
-                                    {case 5}close{/case}
-                                    {default/}{$vo.event}
-                                {/switch}
+                                <span class="log-event">
+                                    {switch $vo.event}
+                                        {case 1}create{/case}
+                                        {case 2}notify{/case}
+                                        {case 3}sync{/case}
+                                        {case 4}refund{/case}
+                                        {case 5}close{/case}
+                                        {default/}{$vo.event}
+                                    {/switch}
+                                </span>
                             </td>
                             <td>{$vo.create_time|substr=0,19}</td>
-                            <td>{$vo.ip}</td>
+                            <td><code class="code-text">{$vo.ip}</code></td>
                         </tr>
                         {/foreach}
                     </tbody>
@@ -90,7 +96,7 @@
         {/if}
     </div>
 
-    <div style="margin-top:16px">
+    <div class="form-actions" data-reveal>
         <a href="/order/myList" class="btn">返回订单列表</a>
     </div>
 </section>

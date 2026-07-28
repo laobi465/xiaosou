@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>网盘资源搜索</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="__CSS__/main.css">
 </head>
 <body>
 <header class="site-header">
     <div class="header-inner">
         <a class="logo" href="/">网盘搜索</a>
-        <form class="header-search" action="/search" method="get">
-            <input type="text" name="q" placeholder="搜索资源..." autocomplete="off">
-            <button type="submit">搜索</button>
+        <form class="header-search" action="/search" method="get" role="search">
+            <input type="text" name="q" placeholder="搜索资源..." autocomplete="off" aria-label="搜索关键词">
+            <button type="submit" aria-label="搜索">搜索</button>
         </form>
-        <nav class="user-menu">
+        <nav class="user-menu" aria-label="用户导航">
             <a href="/user">个人中心</a>
             <a href="/submit">资源提交</a>
             <a href="/order/packages">套餐</a>
@@ -25,14 +28,18 @@
 </header>
 
 <main class="site-main">
-    {__CONTENT__}
+    <div class="container">
+        {__CONTENT__}
+    </div>
 </main>
 
 <footer class="site-footer">
-    <p>&copy; {:date('Y')} 网盘资源搜索引擎</p>
+    <div class="container">
+        <p>&copy; {:date('Y')} 网盘资源搜索引擎</p>
+    </div>
 </footer>
 
-<div class="float-ad-slot" id="float-ad">广告位占位</div>
+<div class="float-ad-slot" id="float-ad" aria-hidden="true">广告位占位</div>
 
 <script src="__JS__/common.js"></script>
 </body>

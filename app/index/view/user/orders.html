@@ -1,23 +1,31 @@
 <section class="user-center">
+
     {/* 导航 */}
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders" class="active">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
-    </div>
+    </nav>
 
-    <div class="page-header"><h1>我的订单</h1></div>
+    <div class="page-header" data-reveal>
+        <h1>我的订单</h1>
+    </div>
 
     {/* 订单列表 */}
     {if condition="$orders->isEmpty()"}
-        <div class="empty-tip">
+        <div class="empty-tip" data-reveal>
+            <div class="empty-icon" aria-hidden="true">
+                <span class="empty-icon-dot"></span>
+            </div>
             <p>暂无订单记录</p>
-            <a href="/order/packages" class="btn btn-primary btn-small">去充值</a>
+            <a href="/order/packages" class="btn btn-primary btn-small btn-has-arrow">
+                去充值
+            </a>
         </div>
     {else/}
-        <div class="data-table-wrap">
+        <div class="data-table-wrap" data-reveal>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -33,12 +41,12 @@
                 <tbody>
                     {foreach $orders as $vo}
                     <tr>
-                        <td>{$vo.order_no}</td>
+                        <td class="cell-mono">{$vo.order_no}</td>
                         <td>
-                            {if condition="$vo->package"}{$vo.package.name}{else/}套餐已删除{/if}
+                            {if condition="$vo->package"}{$vo.package.name}{else/}<span class="text-muted">套餐已删除</span>{/if}
                         </td>
-                        <td>¥{$vo.amount}</td>
-                        <td>{$vo.credits}</td>
+                        <td class="cell-amount cell-mono">¥{$vo.amount}</td>
+                        <td class="cell-mono">{$vo.credits}</td>
                         <td>
                             {switch $vo.status}
                                 {case 0}<span class="badge badge-warning">待支付</span>{/case}
@@ -48,7 +56,7 @@
                                 {default/}<span class="badge badge-default">未知</span>
                             {/switch}
                         </td>
-                        <td>{$vo.create_time|substr=0,16}</td>
+                        <td class="cell-mono">{$vo.create_time|substr=0,16}</td>
                         <td><a href="/order/{$vo.id}" class="btn-link">详情</a></td>
                     </tr>
                     {/foreach}
@@ -57,4 +65,5 @@
         </div>
         <div class="pagination">{$orders->render()|raw}</div>
     {/if}
+
 </section>

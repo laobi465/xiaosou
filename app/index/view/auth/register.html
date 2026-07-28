@@ -1,23 +1,31 @@
 <section class="auth-page">
-    <div class="auth-box">
+    <div class="auth-box" data-reveal>
+        <div class="auth-brand" aria-hidden="true">
+            <span class="auth-brand-mark"></span>
+        </div>
         <h2>注册</h2>
+        <p class="auth-subtitle">创建账号开启网盘资源探索</p>
         <form id="register-form" class="auth-form">
             <div class="form-item">
-                <label>邮箱</label>
+                <label for="reg-email">邮箱</label>
                 <input type="email" name="email" id="reg-email" placeholder="请输入邮箱" required>
             </div>
             <div class="form-item">
-                <label>验证码</label>
+                <label for="reg-code">验证码</label>
                 <div class="code-row">
                     <input type="text" name="code" id="reg-code" placeholder="请输入验证码" required maxlength="6">
-                    <button type="button" id="send-code-btn" class="btn btn-code">发送验证码</button>
+                    <button type="button" id="send-code-btn" class="btn btn-code btn-has-send">
+                        发送验证码
+                    </button>
                 </div>
             </div>
             <div class="form-item">
-                <label>昵称（选填）</label>
+                <label for="reg-nickname">昵称（选填）</label>
                 <input type="text" name="nickname" id="reg-nickname" placeholder="请输入昵称">
             </div>
-            <button type="submit" class="btn btn-primary btn-submit">注册</button>
+            <button type="submit" class="btn btn-primary btn-submit btn-has-arrow">
+                注册
+            </button>
             <p class="auth-link">已有账号？<a href="/auth/login">立即登录</a></p>
         </form>
     </div>

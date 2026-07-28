@@ -4,20 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>后台登录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="__CSS__/admin.css">
 </head>
 <body>
 <div class="admin-login-page">
-    <div class="admin-login-box">
-        <h2>后台登录</h2>
+    <div class="admin-login-box" data-reveal>
+        <div class="admin-login-brand">
+            <span class="admin-login-mark" aria-hidden="true"></span>
+            <h2>后台登录</h2>
+            <p class="admin-login-hint">请输入管理员凭证以进入控制台</p>
+        </div>
         <form id="admin-login-form" action="/admin/login" method="post">
             <div class="form-item">
-                <label>用户名</label>
-                <input type="text" name="username" placeholder="请输入用户名" required>
+                <label for="login-username">用户名</label>
+                <input type="text" id="login-username" name="username" placeholder="请输入用户名" autocomplete="username" required>
             </div>
             <div class="form-item">
-                <label>密码</label>
-                <input type="password" name="password" placeholder="请输入密码" required>
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
             </div>
             <button type="submit" class="btn-submit">登录</button>
         </form>

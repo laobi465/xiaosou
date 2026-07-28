@@ -1,29 +1,43 @@
-<div class="page-title">日志查看</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-mint" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <path d="M10 17l5-5-5-5"/>
+            <path d="M15 12H3"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">日志查看</h1>
+        <p class="page-subtitle">记录用户在站点前台与 API 的登录行为</p>
+    </div>
+</header>
 
-<div class="toolbar" style="gap:4px;">
+<nav class="log-toolbar" data-reveal aria-label="日志类型切换">
     <a href="/admin/log/admin" class="btn btn-sm">管理员操作</a>
     <a href="/admin/log/user_login" class="btn btn-sm btn-primary">用户登录</a>
     <a href="/admin/log/payment" class="btn btn-sm">支付日志</a>
     <a href="/admin/log/exception" class="btn btn-sm">异常日志</a>
-</div>
+</nav>
 
-<form class="toolbar" method="get" action="/admin/log/user_login">
+<form class="toolbar" method="get" action="/admin/log/user_login" data-reveal>
     <div class="form-item">
+        <label>用户 ID</label>
         <input type="number" name="user_id" value="{$user_id}" placeholder="用户 ID" class="input-sm">
     </div>
     <div class="form-item">
+        <label>结果</label>
         <select name="result">
             <option value="">全部结果</option>
             <option value="1" {if condition="$result == 1"}selected{/if}>成功</option>
             <option value="0" {if condition="$result === 0 || $result === '0'"}selected{/if}>失败</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -58,4 +72,4 @@
     <div class="empty">暂无登录日志</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

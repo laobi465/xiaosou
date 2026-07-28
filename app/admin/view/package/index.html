@@ -1,6 +1,17 @@
-<div class="page-title">积分套餐管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-pink" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+    </span>
+    <div class="page-head-text">
+        <div class="page-title">积分套餐管理</div>
+        <div class="page-subtitle">维护充值积分套餐的价格、积分与赠送，支持上下架切换、推荐标记与删除</div>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/package/add" class="btn btn-success btn-sm">新增套餐</a>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/package">
+<form class="toolbar" method="get" action="/admin/package" data-reveal>
     <div class="form-item">
         <select name="status">
             <option value="">全部状态</option>
@@ -8,13 +19,12 @@
             <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>下架</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
-        <a href="/admin/package/add" class="btn btn-success btn-sm">新增套餐</a>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>

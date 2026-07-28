@@ -1,55 +1,64 @@
 <section class="user-center">
-    {/* 个人资料卡片 */}
-    <div class="profile-card">
+
+    {/* 个人资料卡片：头像 + 昵称 */}
+    <div class="profile-card" data-reveal>
         {if condition="!empty($user['avatar'])"}
             <img class="profile-avatar" src="{$user.avatar}" alt="{$user.nickname}">
         {else/}
-            <div class="profile-avatar" style="display:flex;align-items:center;justify-content:center;background:#eef4ff;color:#2b7cff;font-size:24px;font-weight:700">
+            <div class="profile-avatar-placeholder" aria-hidden="true">
                 {:mb_substr((string)($user['nickname'] ?? 'U'), 0, 1)}
             </div>
         {/if}
         <div class="profile-info">
             <h2>{$user.nickname}</h2>
-            <p>{$user.email}</p>
-            <p>注册时间：{$user.create_time|substr=0,10}</p>
+            <p class="profile-email">{$user.email}</p>
+            <p class="profile-joined">
+                <span class="profile-meta-icon" aria-hidden="true"></span>
+                注册时间：{$user.create_time|substr=0,10}
+            </p>
         </div>
     </div>
 
-    {/* 积分余额 + 签到 */}
-    <div class="credit-balance">
-        <div>
-            <div class="balance-label">积分余额</div>
-            <div class="balance-num">{$balance}</div>
+    {/* 积分余额 + 每日签到 */}
+    <div class="credit-balance" data-reveal>
+        <div class="credit-balance-info">
+            <span class="credit-balance-label">积分余额</span>
+            <span class="credit-balance-value">{$balance}</span>
         </div>
-        <button type="button" class="btn btn-small" id="sign-in-btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">每日签到</button>
+        <button type="button" class="btn btn-primary btn-small btn-balance-action btn-has-check" id="sign-in-btn">
+            每日签到
+        </button>
     </div>
 
     {/* 导航 */}
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user" class="active">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
-    </div>
+    </nav>
 
     {/* 编辑资料表单 */}
-    <div class="detail-block">
-        <h3>编辑资料</h3>
+    <div class="detail-block" data-reveal>
+        <h2>编辑资料</h2>
         <form class="form" id="profile-form">
             <div class="form-item">
-                <label>昵称</label>
-                <input type="text" name="nickname" value="{$user.nickname}" placeholder="请输入昵称">
+                <label for="profile-nickname">昵称</label>
+                <input type="text" id="profile-nickname" name="nickname" value="{$user.nickname}" placeholder="请输入昵称">
             </div>
             <div class="form-item">
-                <label>头像 URL</label>
-                <input type="text" name="avatar" value="{$user.avatar}" placeholder="请输入头像图片地址">
+                <label for="profile-avatar">头像 URL</label>
+                <input type="text" id="profile-avatar" name="avatar" value="{$user.avatar}" placeholder="请输入头像图片地址">
             </div>
-            <div>
-                <button type="submit" class="btn btn-primary">保存</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-has-check">
+                    保存
+                </button>
             </div>
         </form>
     </div>
+
 </section>
 
 <script>

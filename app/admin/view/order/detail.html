@@ -1,9 +1,17 @@
-<div class="page-title">
-    订单详情
-    <a href="/admin/order" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
-</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-amber" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="11" y2="9"/></svg>
+    </span>
+    <div class="page-head-text">
+        <div class="page-title">订单详情</div>
+        <div class="page-subtitle">查看订单信息与支付日志，对待支付订单可手动补单，对已支付订单可发起退款</div>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/order" class="btn btn-sm">返回列表</a>
+    </div>
+</header>
 
-<div class="detail-section">
+<div class="detail-section" data-reveal>
     <div class="section-header">订单信息</div>
     <div class="section-body">
         <div class="detail-grid">
@@ -30,16 +38,16 @@
 </div>
 
 {if condition="$vo.status == 0"}
-<div class="detail-section">
+<div class="detail-section" data-reveal>
     <div class="section-header">手动补单</div>
     <div class="section-body">
         <form action="/admin/order/manualComplete/{$vo.id}" method="post" data-action="ajax-form" data-redirect="/admin/order/detail/{$vo.id}">
-            <div class="flex gap-8" style="flex-wrap:wrap;align-items:flex-end;">
-                <div class="form-item" style="margin-bottom:0;">
+            <div class="inline-form">
+                <div class="form-item">
                     <label>交易号 <span class="required">*</span></label>
                     <input type="text" name="trade_no" required placeholder="支付平台交易号">
                 </div>
-                <div class="form-item" style="margin-bottom:0;">
+                <div class="form-item">
                     <button type="submit" class="btn btn-success">确认补单</button>
                 </div>
             </div>
@@ -50,20 +58,20 @@
 {/if}
 
 {if condition="$vo.status == 1"}
-<div class="detail-section">
+<div class="detail-section" data-reveal>
     <div class="section-header">退款处理</div>
     <div class="section-body">
-        <div class="flex gap-8" style="align-items:center;">
-            <span>退款将扣回用户 {$vo.credits} 积分</span>
+        <div class="inline-row">
+            <span class="inline-row-text">退款将扣回用户 {$vo.credits} 积分</span>
             <a href="/admin/order/refund/{$vo.id}" class="btn btn-danger btn-sm" data-action="prompt-ajax" data-prompt-title="退款原因" data-prompt-placeholder="请输入退款原因" data-param-name="refund_reason" data-confirm="确认退款？">发起退款</a>
         </div>
     </div>
 </div>
 {/if}
 
-<div class="detail-section">
+<div class="detail-section" data-reveal>
     <div class="section-header">支付日志</div>
-    <div class="section-body" style="padding:0;">
+    <div class="section-body">
         <table class="table">
             <thead><tr><th class="col-id">ID</th><th>订单号</th><th>事件</th><th>内容</th><th>时间</th></tr></thead>
             <tbody>

@@ -1,24 +1,36 @@
-<div class="page-title">日志查看</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-pink" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">日志查看</h1>
+        <p class="page-subtitle">浏览系统异常堆栈与错误日志文件（浅色代码块，便于阅读）</p>
+    </div>
+</header>
 
-<div class="toolbar" style="gap:4px;">
+<nav class="log-toolbar" data-reveal aria-label="日志类型切换">
     <a href="/admin/log/admin" class="btn btn-sm">管理员操作</a>
     <a href="/admin/log/user_login" class="btn btn-sm">用户登录</a>
     <a href="/admin/log/payment" class="btn btn-sm">支付日志</a>
     <a href="/admin/log/exception" class="btn btn-sm btn-primary">异常日志</a>
-</div>
+</nav>
 
 {if condition="empty($logs)"}
-<div class="empty">暂无异常日志文件</div>
+<div class="empty" data-reveal>暂无异常日志文件</div>
 {else/}
 <div class="log-list">
     {foreach $logs as $log}
-    <div class="log-item">
+    <article class="log-item" data-reveal>
         <div class="log-item-header">
             <span class="log-file">{$log.file}</span>
             <span class="log-meta">{$log.mtime} · {:($log['size'] >= 1048576 ? round($log['size'] / 1048576, 2) . ' MB' : ($log['size'] >= 1024 ? round($log['size'] / 1024, 2) . ' KB' : $log['size'] . ' B'))}</span>
         </div>
-        <pre>{$log.content}</pre>
-    </div>
+        <pre class="log-pre">{$log.content}</pre>
+    </article>
     {/foreach}
 </div>
 {/if}

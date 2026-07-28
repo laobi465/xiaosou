@@ -4,29 +4,70 @@
    - CRUD 操作 / 确认弹窗 / Toast
    - 表单 AJAX 提交拦截
    - 自动绑定 data-action 元素
+   美学方向：新拟物柔和 - 微交互增强
    ============================================ */
 (function () {
     'use strict';
 
     var Admin = {
-        /* ---- Toast 通知 ---- */
+        /* ---- Toast 通知 (增强：入场动画 + CSS 图标) ---- */
         toast: function (message, type) {
             type = type || 'info';
+            var wrap = document.querySelector('.toast-wrap');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.className = 'toast-wrap';
+                document.body.appendChild(wrap);
+            }
             var el = document.createElement('div');
             el.className = 'toast toast-' + type;
-            el.textContent = message;
-            document.body.appendChild(el);
+            var iconHtml = '';
+            if (type === 'success') {
+                iconHtml = '<span class="toast-icon toast-icon-success" aria-hidden="true"></span>';
+            } else if (type === 'error') {
+                iconHtml = '<span class="toast-icon toast-icon-error" aria-hidden="true"></span>';
+            } else {
+                iconHtml = '<span class="toast-icon toast-icon-info" aria-hidden="true"></span>';
+            }
+            el.innerHTML = iconHtml + '<span class="toast-text">' + escapeHtml(message) + '</span>';
+            wrap.appendChild(el);
             requestAnimationFrame(function () { el.classList.add('show'); });
             setTimeout(function () {
                 el.classList.remove('show');
-                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+                el.classList.add('hide');
+                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 250);
             }, 2500);
         },
 
-        /* ---- 确认弹窗 (Promise) ---- */
+        /* ---- 确认弹窗 (Promise, 增强模态框动画) ---- */
         confirm: function (message) {
             return new Promise(function (resolve) {
-                resolve(window.confirm(message || '确认执行此操作？'));
+                var mask = document.createElement('div');
+                mask.className = 'modal-mask';
+                mask.innerHTML =
+                    '<div class="modal-box modal-confirm">' +
+                    '<div class="modal-header">' + escapeHtml(message || '确认执行此操作？') + '</div>' +
+                    '<div class="modal-footer">' +
+                    '<button type="button" class="btn modal-cancel">取消</button>' +
+                    '<button type="button" class="btn btn-primary modal-ok">确定</button>' +
+                    '</div>' +
+                    '</div>';
+                document.body.appendChild(mask);
+                requestAnimationFrame(function () { mask.classList.add('show'); });
+
+                function close(val) {
+                    mask.classList.remove('show');
+                    mask.classList.add('hide');
+                    setTimeout(function () { if (mask.parentNode) mask.parentNode.removeChild(mask); }, 200);
+                    resolve(val);
+                }
+                mask.querySelector('.modal-cancel').addEventListener('click', function () { close(false); });
+                mask.querySelector('.modal-ok').addEventListener('click', function () { close(true); });
+                mask.addEventListener('click', function (e) {
+                    if (e.target === mask) close(false);
+                });
+                // 自动聚焦确定按钮
+                setTimeout(function () { mask.querySelector('.modal-ok').focus(); }, 50);
             });
         },
 
@@ -48,13 +89,16 @@
                     '</div>' +
                     '</div>';
                 document.body.appendChild(mask);
+                requestAnimationFrame(function () { mask.classList.add('show'); });
 
                 var textarea = mask.querySelector('.modal-textarea');
                 if (opts.required === false) { /* 允许空 */ }
                 setTimeout(function () { textarea.focus(); }, 50);
 
                 function close(val) {
-                    if (mask.parentNode) mask.parentNode.removeChild(mask);
+                    mask.classList.remove('show');
+                    mask.classList.add('hide');
+                    setTimeout(function () { if (mask.parentNode) mask.parentNode.removeChild(mask); }, 200);
                     resolve(val);
                 }
                 mask.querySelector('.modal-cancel').addEventListener('click', function () { close(null); });
@@ -65,6 +109,12 @@
                         return;
                     }
                     close(val);
+                });
+                // Ctrl+Enter 提交
+                textarea.addEventListener('keydown', function (e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        mask.querySelector('.modal-ok').click();
+                    }
                 });
                 mask.addEventListener('click', function (e) {
                     if (e.target === mask) close(null);
@@ -161,6 +211,10 @@
         bindAjaxForm();
         bindAjaxPost();
         bindPromptAjax();
+        initTableHover();
+        initSidebarToggle();
+        initSubmitButtonLoading();
+        initStaggeredReveal();
     });
 
     /* 侧边栏高亮当前菜单 */
@@ -228,15 +282,15 @@
 
                 var btn = form.querySelector('[type="submit"]');
                 var originalText = btn ? btn.innerHTML : '';
-                if (btn) { btn.disabled = true; btn.textContent = '提交中...'; }
+                if (btn) { btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = '提交中...'; }
 
                 Admin.request(url, { method: 'POST', data: formData }).then(function (res) {
                     if (!Admin.handleResponse(res, redirect) && btn) {
-                        btn.disabled = false; btn.innerHTML = originalText;
+                        btn.disabled = false; btn.classList.remove('is-loading'); btn.innerHTML = originalText;
                     }
                 }).catch(function () {
                     Admin.toast('网络错误', 'error');
-                    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+                    if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); btn.innerHTML = originalText; }
                 });
             });
         });
@@ -284,5 +338,69 @@
             }
         });
         return obj;
+    }
+
+    /* ---- 微交互增强：表格行 hover ---- */
+    function initTableHover() {
+        var rows = document.querySelectorAll('.table tbody tr, .data-table tbody tr');
+        rows.forEach(function (row) {
+            row.addEventListener('mouseenter', function () { row.classList.add('is-hover'); });
+            row.addEventListener('mouseleave', function () { row.classList.remove('is-hover'); });
+        });
+    }
+
+    /* ---- 微交互增强：移动端侧边栏抽屉切换 ---- */
+    function initSidebarToggle() {
+        var toggle = document.querySelector('.sidebar-toggle');
+        var sidebar = document.querySelector('.admin-sidebar');
+        var overlay = document.querySelector('.sidebar-overlay');
+        if (!toggle || !sidebar) return;
+
+        function openSidebar() {
+            sidebar.classList.add('is-open');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.body.appendChild(overlay);
+            }
+            overlay.classList.add('show');
+            overlay.addEventListener('click', closeSidebar, { once: true });
+        }
+        function closeSidebar() {
+            sidebar.classList.remove('is-open');
+            if (overlay) overlay.classList.remove('show');
+        }
+        toggle.addEventListener('click', function () {
+            if (sidebar.classList.contains('is-open')) closeSidebar();
+            else openSidebar();
+        });
+    }
+
+    /* ---- 微交互增强：表单提交按钮加载状态 ---- */
+    function initSubmitButtonLoading() {
+        var forms = document.querySelectorAll('form[data-action="ajax-form"], form.form-panel');
+        forms.forEach(function (form) {
+            var btn = form.querySelector('[type="submit"]');
+            if (!btn || btn.hasAttribute('data-loading-bound')) return;
+            btn.setAttribute('data-loading-bound', '1');
+            form.addEventListener('submit', function () {
+                if (btn.disabled) return;
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+                var original = btn.innerHTML;
+                btn.setAttribute('data-original-html', original);
+                btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span><span>提交中...</span>';
+            });
+        });
+    }
+
+    /* ---- 微交互增强：staggered 入场动画 ---- */
+    function initStaggeredReveal() {
+        var items = document.querySelectorAll('[data-reveal]');
+        items.forEach(function (item, idx) {
+            item.style.animationDelay = (idx * 50) + 'ms';
+            item.classList.add('reveal-item');
+            requestAnimationFrame(function () { item.classList.add('reveal-in'); });
+        });
     }
 })();

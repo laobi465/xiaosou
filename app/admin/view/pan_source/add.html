@@ -1,32 +1,48 @@
-<div class="page-title">新增网盘源</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-mint" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">新增网盘源</h1>
+        <p class="page-subtitle">接入一个新的网盘平台采集源</p>
+    </div>
+</header>
 
-<div class="form-panel">
+<div class="form-panel" data-reveal>
     <form action="/admin/pan_source/add" method="post" data-action="ajax-form" data-redirect="/admin/pan_source">
-        <div class="form-item">
-            <label>名称 <span class="required">*</span></label>
-            <input type="text" name="name" required placeholder="如 百度网盘">
-        </div>
-        <div class="form-item">
-            <label>代码 <span class="required">*</span></label>
-            <input type="text" name="code" required placeholder="如 baidu">
+        <div class="form-row">
+            <div class="form-item">
+                <label>名称 <span class="required">*</span></label>
+                <input type="text" name="name" required placeholder="如 百度网盘">
+            </div>
+            <div class="form-item">
+                <label>代码 <span class="required">*</span></label>
+                <input type="text" name="code" required placeholder="如 baidu">
+            </div>
         </div>
         <div class="form-item">
             <label>采集器类名</label>
             <input type="text" name="crawler_class" placeholder="如 Pansou\Crawler\BaiduCrawler">
         </div>
-        <div class="form-item">
-            <label>是否主流</label>
-            <select name="is_mainstream">
-                <option value="1">主流</option>
-                <option value="0">小众</option>
-            </select>
-        </div>
-        <div class="form-item">
-            <label>状态</label>
-            <select name="enabled">
-                <option value="1">启用</option>
-                <option value="0">禁用</option>
-            </select>
+        <div class="form-row">
+            <div class="form-item">
+                <label>是否主流</label>
+                <select name="is_mainstream">
+                    <option value="1">主流</option>
+                    <option value="0">小众</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>状态</label>
+                <select name="enabled">
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
         </div>
         <div class="form-item">
             <label>排序</label>

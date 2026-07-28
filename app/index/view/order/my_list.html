@@ -1,25 +1,25 @@
 <section class="user-center">
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
-    </div>
+    </nav>
 
-    <div class="page-header">
+    <div class="page-header" data-reveal>
         <h1>我的订单</h1>
-        <a href="/order/packages" class="btn btn-primary btn-small" style="margin-top:8px">+ 购买套餐</a>
+        <a href="/order/packages" class="btn btn-primary btn-small">购买套餐</a>
     </div>
 
     {/* 订单列表 */}
     {if condition="$orders->isEmpty()"}
-        <div class="empty-tip">
+        <div class="empty-tip" data-reveal>
             <p>暂无订单记录</p>
             <a href="/order/packages" class="btn btn-primary btn-small">去充值</a>
         </div>
     {else/}
-        <div class="data-table-wrap">
+        <div class="data-table-wrap" data-reveal>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -34,8 +34,8 @@
                 <tbody>
                     {foreach $orders as $vo}
                     <tr>
-                        <td>{$vo.order_no}</td>
-                        <td>¥{$vo.amount}</td>
+                        <td><code class="code-text">{$vo.order_no}</code></td>
+                        <td class="amount-cell">¥{$vo.amount}</td>
                         <td>{$vo.credits}</td>
                         <td>
                             {switch $vo.status}
@@ -53,6 +53,6 @@
                 </tbody>
             </table>
         </div>
-        <div class="pagination">{$orders->render()|raw}</div>
+        <div class="pagination" data-reveal>{$orders->render()|raw}</div>
     {/if}
 </section>

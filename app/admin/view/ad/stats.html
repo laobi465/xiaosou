@@ -1,9 +1,20 @@
-<div class="page-title">
-    广告统计 - {$placement.title}
-    <a href="/admin/ad/placements/{$placement.slot_id}" class="btn btn-sm" style="margin-left:12px;">返回列表</a>
-</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-amber" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 14l4-4 4 4 5-6"/>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">广告统计 - {$placement.title}</h1>
+        <p class="page-subtitle">查看投放曝光、点击与点击率趋势明细</p>
+    </div>
+    <div class="page-head-action">
+        <a href="/admin/ad/placements/{$placement.slot_id}" class="btn btn-sm">返回列表</a>
+    </div>
+</header>
 
-<div class="stat-cards">
+<div class="stat-cards" data-reveal>
     <div class="stat-card blue">
         <span class="stat-label">总曝光</span>
         <span class="stat-value">{$totalImpressions}</span>
@@ -18,7 +29,7 @@
     </div>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -51,4 +62,4 @@
     <div class="empty">暂无统计数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<div class="pagination" data-reveal>{$list->render()|raw}</div>

@@ -1,6 +1,14 @@
-<div class="page-title">用户管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-blue" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </span>
+    <div class="page-head-text">
+        <div class="page-title">用户管理</div>
+        <div class="page-subtitle">查看与维护平台注册用户，支持按邮箱昵称检索及状态封禁切换</div>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/user">
+<form class="toolbar" method="get" action="/admin/user" data-reveal>
     <div class="form-item">
         <input type="text" name="keyword" value="{$keyword}" placeholder="搜索邮箱/昵称" class="input-sm">
     </div>
@@ -11,12 +19,12 @@
             <option value="0" {if condition="$status === 0 || $status === '0'"}selected{/if}>封禁</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>

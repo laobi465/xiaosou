@@ -1,6 +1,18 @@
-<div class="page-title">网盘源管理</div>
+<header class="page-head" data-reveal>
+    <span class="page-head-mark mark-mint" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M3 5v14a9 3 0 0 0 18 0V5"></path>
+            <path d="M3 12a9 3 0 0 0 18 0"></path>
+        </svg>
+    </span>
+    <div class="page-head-text">
+        <h1 class="page-title">网盘源管理</h1>
+        <p class="page-subtitle">配置各网盘平台的采集器与启用状态</p>
+    </div>
+</header>
 
-<form class="toolbar" method="get" action="/admin/pan_source">
+<form class="toolbar" method="get" action="/admin/pan_source" data-reveal>
     <div class="form-item">
         <input type="text" name="name" value="{$name}" placeholder="搜索网盘源名称" class="input-sm">
     </div>
@@ -11,13 +23,13 @@
             <option value="0" {if condition="$enabled === 0 || $enabled === '0'"}selected{/if}>禁用</option>
         </select>
     </div>
-    <div class="form-item">
+    <div class="form-item toolbar-actions">
         <button type="submit" class="btn btn-primary btn-sm">筛选</button>
         <a href="/admin/pan_source/add" class="btn btn-success btn-sm">新增网盘源</a>
     </div>
 </form>
 
-<div class="table-wrap">
+<div class="table-wrap" data-reveal>
     <table class="table">
         <thead>
             <tr>
@@ -64,4 +76,4 @@
     <div class="empty">暂无网盘源数据</div>
     {/if}
 </div>
-<div class="pagination">{$list->render()|raw}</div>
+<nav class="pagination" data-reveal>{$list->render()|raw}</nav>

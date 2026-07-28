@@ -1,29 +1,39 @@
 <section class="user-center">
+
     {/* 积分余额 */}
-    <div class="credit-balance">
-        <div>
-            <div class="balance-label">积分余额</div>
-            <div class="balance-num">{$balance}</div>
+    <div class="credit-balance" data-reveal>
+        <div class="credit-balance-info">
+            <span class="credit-balance-label">积分余额</span>
+            <span class="credit-balance-value">{$balance}</span>
         </div>
-        <a href="/order/packages" class="btn btn-small" style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">去充值</a>
+        <a href="/order/packages" class="btn btn-primary btn-small btn-balance-action btn-has-arrow">
+            去充值
+        </a>
     </div>
 
     {/* 导航 */}
-    <div class="user-tabs">
+    <nav class="user-tabs" data-reveal>
         <a href="/user">个人资料</a>
         <a href="/user/credits" class="active">积分流水</a>
         <a href="/user/orders">我的订单</a>
         <a href="/submit/myList">我的提交</a>
         <a href="/order/packages">充值套餐</a>
-    </div>
+    </nav>
 
-    <div class="page-header"><h1>积分流水</h1></div>
+    <div class="page-header" data-reveal>
+        <h1>积分流水</h1>
+    </div>
 
     {/* 流水列表 */}
     {if condition="$logs->isEmpty()"}
-        <div class="empty-tip"><p>暂无积分流水记录</p></div>
+        <div class="empty-tip" data-reveal>
+            <div class="empty-icon" aria-hidden="true">
+                <span class="empty-icon-dot"></span>
+            </div>
+            <p>暂无积分流水记录</p>
+        </div>
     {else/}
-        <div class="data-table-wrap">
+        <div class="data-table-wrap" data-reveal>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -37,7 +47,7 @@
                 <tbody>
                     {foreach $logs as $vo}
                     <tr>
-                        <td>{$vo.create_time|substr=0,16}</td>
+                        <td class="cell-mono">{$vo.create_time|substr=0,16}</td>
                         <td>
                             {switch $vo.type}
                                 {case 1}<span class="badge badge-success">充值</span>{/case}
@@ -50,8 +60,8 @@
                                 {default/}<span class="badge badge-default">未知</span>
                             {/switch}
                         </td>
-                        <td>{if condition="$vo.amount >= 0"}+{/if}{$vo.amount}</td>
-                        <td>{$vo.balance_after}</td>
+                        <td class="cell-amount cell-mono">{if condition="$vo.amount >= 0"}+{/if}{$vo.amount}</td>
+                        <td class="cell-mono">{$vo.balance_after}</td>
                         <td class="wrap">{$vo.remark}</td>
                     </tr>
                     {/foreach}
@@ -60,4 +70,5 @@
         </div>
         <div class="pagination">{$logs->render()|raw}</div>
     {/if}
+
 </section>

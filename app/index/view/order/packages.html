@@ -1,17 +1,19 @@
-<section>
-    <div class="page-header"><h1>积分套餐</h1></div>
-    <p class="form-hint" style="margin-bottom:18px">选择套餐充值积分，可用于查看资源完整链接等操作。</p>
+<section class="package-page">
+    <div class="page-header" data-reveal>
+        <h1>积分套餐</h1>
+    </div>
+    <p class="page-intro" data-reveal>选择套餐充值积分，可用于查看资源完整链接等操作。</p>
 
     {if condition="empty($packages)"}
-        <div class="empty-tip"><p>暂无可购买的套餐</p></div>
+        <div class="empty-tip" data-reveal><p>暂无可购买的套餐</p></div>
     {else/}
-        <div class="package-list">
+        <div class="package-list" data-reveal-group>
             {foreach $packages as $vo}
-                <div class="package-card{if condition="$vo.is_recommended == 1"} recommended{/if}">
+                <div class="package-card{if condition="$vo.is_recommended == 1"} recommended{/if}" data-reveal>
                     {if condition="$vo.is_recommended == 1"}
                         <span class="recommend-tag">推荐</span>
                     {/if}
-                    <h3>{$vo.name}</h3>
+                    <h3 class="package-name">{$vo.name}</h3>
                     <div class="package-price"><small>¥</small>{$vo.price}</div>
                     <div class="package-credits">{$vo.credits} 积分</div>
                     {if condition="$vo.bonus > 0"}
