@@ -18,11 +18,15 @@
             <button type="submit" aria-label="搜索">搜索</button>
         </form>
         <nav class="user-menu" aria-label="用户导航">
-            <a href="/user">个人中心</a>
-            <a href="/submit">资源提交</a>
             <a href="/order/packages">套餐</a>
-            <a href="/auth/login">登录</a>
-            <a href="/auth/register">注册</a>
+            {if condition="$isLogged"}
+                <a href="/user">{$userNickname}</a>
+                <a href="/submit">资源提交</a>
+                <a href="/auth/logout">退出</a>
+            {else/}
+                <a href="/auth/login">登录</a>
+                <a href="/auth/register">注册</a>
+            {/if}
         </nav>
     </div>
 </header>

@@ -2,16 +2,17 @@
 // 前台路由
 use think\facade\Route;
 use app\index\middleware\UserAuth;
+use app\index\middleware\VisitorLog;
 
 // 首页
-Route::get('/', '\app\index\controller\Index/index');
+Route::get('/', '\app\index\controller\Index/index')->middleware(VisitorLog::class);
 
 // 搜索
-Route::get('/search', '\app\index\controller\Search/index');
+Route::get('/search', '\app\index\controller\Search/index')->middleware(VisitorLog::class);
 Route::get('/ajax/search/hot', '\app\index\controller\Search/hot');
 
 // 资源详情
-Route::get('/resource/:id', '\app\index\controller\Resource/detail');
+Route::get('/resource/:id', '\app\index\controller\Resource/detail')->middleware(VisitorLog::class);
 Route::post('/ajax/resource/viewLink/:id', '\app\index\controller\Resource/viewLink');
 
 // 注册登录

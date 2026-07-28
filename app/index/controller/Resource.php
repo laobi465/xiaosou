@@ -146,33 +146,4 @@ class Resource extends BaseController
             'extract_code' => (string) $link->extract_code,
         ], 'success');
     }
-
-    /**
-     * 资源失效举报
-     * POST: reason → ResourceReport::create
-     */
-    public function report(int $id)
-    {
-        $reason = (string) $this->request->post('reason', '');
-        if ($reason === '') {
-            return $this->error('举报原因不能为空');
-        }
-
-        $userId = Session::get('user_id');
-        $uid    = $userId ? (int) $userId : 0;
-
-        try {
-            ResourceReport::create([
-                'resource_id' => $id,
-                'user_id'     => $uid,
-                'reason'      => $reason,
-                'status'      => 0,
-            ]);
-        } catch (\Throwable $e) {
-            trace('resource_report_error: ' . $e->getMessage(), 'error');
-            return $this->error('举报提交失败,请稍后重试');
-        }
-
-        return $this->success([], '举报已提交,感谢您的反馈');
-    }
 }

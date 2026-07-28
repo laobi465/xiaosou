@@ -17,7 +17,7 @@
             <h2>后台登录</h2>
             <p class="admin-login-hint">请输入管理员凭证以进入控制台</p>
         </div>
-        <form id="admin-login-form" action="/admin/login" method="post">
+        <form id="admin-login-form" action="/admin/login" method="post" data-action="ajax-form" data-redirect="/admin">
             <div class="form-item">
                 <label for="login-username">用户名</label>
                 <input type="text" id="login-username" name="username" placeholder="请输入用户名" autocomplete="username" required>
@@ -30,5 +30,6 @@
         </form>
     </div>
 </div>
+<script src="__JS__/admin.js"></script>
 </body>
 </html>

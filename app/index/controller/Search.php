@@ -78,6 +78,8 @@ class Search extends BaseController
             'q'      => $q,
             'type'   => $type,
             'sources'=> $sources,
+            'size'   => $size,
+            'time'   => $time,
             'result' => $result,
             'ads'    => $ads,
             'cursor' => $cursor,

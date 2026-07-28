@@ -3,6 +3,8 @@ namespace app;
 
 use think\App;
 use think\exception\HttpResponseException;
+use think\facade\Session;
+use think\facade\View;
 use think\Response;
 
 /**
@@ -18,6 +20,14 @@ abstract class BaseController
     {
         $this->app     = $app;
         $this->request = $app->request;
+
+        // 共享前台登录态到所有视图(后台布局不使用这些变量, 不受影响)
+        $userId = $this->request->userId ?? Session::get('user_id');
+        View::assign([
+            'isLogged'     => $userId ? true : false,
+            'userId'       => $userId ? (int) $userId : 0,
+            'userNickname' => $userId ? (string) Session::get('nickname', '') : '',
+        ]);
     }
 
     /**
