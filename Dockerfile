@@ -68,13 +68,20 @@ RUN composer config -g repo.packagist composer https://mirrors.aliyun.com/compos
 
 WORKDIR /var/www/html
 
-# 复制项目代码
-COPY . /var/www/html
+# 复制项目代码（先只复制 composer 相关文件, 利用 Docker 缓存加速依赖安装）
+COPY composer.json composer.lock* ./
 
-# 安装依赖
+# 安装依赖（增加超时 + 详细错误输出 + 镜像 fallback）
+# exit code 2 通常是网络/解析错误, 这里配置超时并输出完整日志便于定位
 RUN set -eux \
-    && composer install --no-dev --optimize-autoloader --no-interaction --no-progress || \
-       composer install --no-dev --no-interaction --no-progress
+    && composer config -g process-timeout 300 \
+    && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist \
+    || (echo "=== composer install 失败, 切换官方镜像重试 ===" \
+        && composer config -g repo.packagist composer https://packagist.org \
+        && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist)
+
+# 复制项目其余代码
+COPY . /var/www/html
 
 # 运行时目录与权限
 RUN set -eux \
