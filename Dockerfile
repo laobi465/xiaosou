@@ -71,14 +71,26 @@ WORKDIR /var/www/html
 # 复制项目代码（先只复制 composer 相关文件, 利用 Docker 缓存加速依赖安装）
 COPY composer.json composer.lock* ./
 
-# 安装依赖（增加超时 + 详细错误输出 + 镜像 fallback）
-# exit code 2 通常是网络/解析错误, 这里配置超时并输出完整日志便于定位
+# 安装依赖（增加超时 + 内存不限 + 详细错误输出 + 镜像 fallback）
+# exit code 2 常见原因: 内存不足 / 网络超时 / 镜像不可达
+# - COMPOSER_MEMORY_LIMIT=-1: 解除 composer 内存限制(默认 128M 易耗尽)
+# - process-timeout 300: 单包下载超时 5 分钟
+# - 失败时打印 php 扩展列表 + composer 诊断, 便于定位
 RUN set -eux \
+    && export COMPOSER_MEMORY_LIMIT=-1 \
     && composer config -g process-timeout 300 \
     && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist \
-    || (echo "=== composer install 失败, 切换官方镜像重试 ===" \
+    || (echo "=== composer install 失败(阿里云镜像), 切换官方镜像重试 ===" \
         && composer config -g repo.packagist composer https://packagist.org \
-        && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist)
+        && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist) \
+    || (echo "=== composer install 仍然失败, 诊断信息如下 ===" \
+        && echo "--- PHP 扩展列表 ---" \
+        && php -m \
+        && echo "--- composer 诊断 ---" \
+        && composer diagnose \
+        && echo "--- composer.json 内容 ---" \
+        && cat composer.json \
+        && exit 2)
 
 # 复制项目其余代码
 COPY . /var/www/html
