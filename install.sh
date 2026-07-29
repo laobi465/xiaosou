@@ -22,6 +22,28 @@
 
 set -euo pipefail
 
+# ---------- 管道模式检测 ----------
+# curl ... | bash 模式下, bash 的 stdin 是管道(非 tty), 脚本内的 read 交互会失败,
+# 且 set -e 遇错立即退出会导致 SSH 会话被切断。检测到管道模式时, 自动重新下载到
+# 本地再用 bash 执行, 避免 stdin 异常与 SSH 断开。
+if [ ! -t 0 ]; then
+    # stdin 不是 tty(管道模式), 自动转本地执行
+    SELF_URL="https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh"
+    TMP_SELF="$(mktemp /tmp/install-pansou.XXXXXX.sh)"
+    echo "[install] 检测到管道模式(curl|bash), 自动转为本地执行以避免 SSH 断开 ..."
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${SELF_URL}" -o "${TMP_SELF}"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "${TMP_SELF}" "${SELF_URL}"
+    else
+        echo "[install][错误] 需要 curl 或 wget, 请先安装" >&2
+        exit 1
+    fi
+    chmod +x "${TMP_SELF}"
+    # 透传原参数, 用 bash 重新执行(此时 stdin 是 tty 或继承父 shell)
+    exec bash "${TMP_SELF}" "$@"
+fi
+
 # ---------- 默认配置 ----------
 REPO_URL="https://github.com/laobi465/xiaosou.git"
 DEFAULT_PORT=8080
@@ -153,9 +175,12 @@ ensure_docker() {
     if ! docker info >/dev/null 2>&1; then
         warn "Docker daemon 未运行，尝试启动 ..."
         if has_cmd systemctl; then
+            # 启动 docker daemon, 首次启动会配置 iptables/网络桥接,
+            # 极端情况下可能短暂影响已有 SSH 连接。先提示用户, 启动后缓冲 5 秒。
             sudo systemctl start docker
+            echo "[install] Docker daemon 启动中, 等待 5 秒缓冲网络(SSH 若断开请重连后重跑, 已生成配置会保留)..."
+            sleep 5
         fi
-        sleep 3
         docker info >/dev/null 2>&1 || die "Docker daemon 启动失败，请手动执行: sudo systemctl start docker"
     fi
     ok "Docker daemon 运行正常"
