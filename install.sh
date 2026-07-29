@@ -11,6 +11,10 @@
 #        ./install.sh
 #        ./install.sh -p 9000
 #
+# 说明：
+#   - curl|bash 管道模式下 stdin 非 tty, 脚本内交互确认会自动跳过(默认继续)
+#   - 如需交互确认, 请先下载到本地再执行: curl -o install.sh <url> && bash install.sh
+#
 # 脚本职责：
 #   - 检测宝塔面板，未安装则自动拉取宝塔官方脚本安装
 #   - 检测并安装 Docker
@@ -22,25 +26,6 @@
 # =============================================================================
 
 set -euo pipefail
-
-# ---------- 管道模式自我重启 ----------
-# curl|bash 模式下 stdin 是管道(非 tty), 脚本内 read 交互失败且 set -e 遇错即退出
-# 会导致 SSH 会话被切断。检测到管道模式时自动重新下载到本地再 exec bash 执行。
-if [ ! -t 0 ]; then
-    SELF_URL="https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh"
-    TMP_SELF="$(mktemp /tmp/install-pansou.XXXXXX.sh)"
-    echo "[install] 检测到管道模式(curl|bash), 自动转为本地执行以避免 SSH 断开 ..."
-    if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "${SELF_URL}" -o "${TMP_SELF}"
-    elif command -v wget >/dev/null 2>&1; then
-        wget -qO "${TMP_SELF}" "${SELF_URL}"
-    else
-        echo "[install][错误] 需要 curl 或 wget, 请先安装" >&2
-        exit 1
-    fi
-    chmod +x "${TMP_SELF}"
-    exec bash "${TMP_SELF}" "$@"
-fi
 
 # ---------- 默认配置 ----------
 REPO_URL="https://github.com/laobi465/xiaosou.git"
