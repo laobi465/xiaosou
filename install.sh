@@ -1,33 +1,32 @@
 #!/bin/bash
 # =============================================================================
-# 网盘资源搜索引擎 - 真·一条命令一键部署
+# 网盘资源搜索引擎 - SSH 一键安装脚本（宝塔面板 + Docker）
 #
 # 用法：
 #   1) 远程一条命令（推荐）：
 #        curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
-#   2) 自定义端口：
+#   2) 自定义 Web 端口起始值：
 #        curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -p 9000
 #   3) 本地执行：
 #        ./install.sh
 #        ./install.sh -p 9000
 #
 # 脚本职责：
-#   - 自动检测并安装 Docker / Docker Compose / git
-#   - 自动克隆仓库（如不在仓库内）
-#   - 自动生成随机密码并写入 .env.docker
-#   - 自动构建镜像并启动 mysql / redis / app / worker 四个容器
-#   - 轮询健康检查直到服务就绪
-#   - 输出访问地址与凭据
+#   - 检测宝塔面板，未安装则自动拉取宝塔官方脚本安装
+#   - 检测并安装 Docker
+#   - 克隆项目到 /www/wwwroot/pansou
+#   - Web 端口冲突时自动 +1 递增（8080→8081→...）
+#   - DB/Redis 不对外暴露端口（仅容器内通信）
+#   - 固定超管账密 admin@example.com / admin123
+#   - 部署信息保存到 /root/pansou-deploy-info.txt
 # =============================================================================
 
 set -euo pipefail
 
-# ---------- 管道模式检测 ----------
-# curl ... | bash 模式下, bash 的 stdin 是管道(非 tty), 脚本内的 read 交互会失败,
-# 且 set -e 遇错立即退出会导致 SSH 会话被切断。检测到管道模式时, 自动重新下载到
-# 本地再用 bash 执行, 避免 stdin 异常与 SSH 断开。
+# ---------- 管道模式自我重启 ----------
+# curl|bash 模式下 stdin 是管道(非 tty), 脚本内 read 交互失败且 set -e 遇错即退出
+# 会导致 SSH 会话被切断。检测到管道模式时自动重新下载到本地再 exec bash 执行。
 if [ ! -t 0 ]; then
-    # stdin 不是 tty(管道模式), 自动转本地执行
     SELF_URL="https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh"
     TMP_SELF="$(mktemp /tmp/install-pansou.XXXXXX.sh)"
     echo "[install] 检测到管道模式(curl|bash), 自动转为本地执行以避免 SSH 断开 ..."
@@ -40,68 +39,64 @@ if [ ! -t 0 ]; then
         exit 1
     fi
     chmod +x "${TMP_SELF}"
-    # 透传原参数, 用 bash 重新执行(此时 stdin 是 tty 或继承父 shell)
     exec bash "${TMP_SELF}" "$@"
 fi
 
 # ---------- 默认配置 ----------
 REPO_URL="https://github.com/laobi465/xiaosou.git"
 DEFAULT_PORT=8080
-CLONE_DIR="${HOME}/pansou-deploy"
+WEB_PORT_MAX=9999
+DEPLOY_DIR="/www/wwwroot/pansou"
+INFO_FILE="/root/pansou-deploy-info.txt"
 HEALTH_TIMEOUT=240
 
-# ---------- 宝塔面板环境检测 ----------
-# 宝塔面板安装后 /www/server/panel 目录存在; 宝塔自带 MySQL(3306)/Redis(6379)/Nginx(80)
-# 默认 DB_EXPOSE_PORT=3306 / REDIS_EXPOSE_PORT=6379 会与宝塔服务冲突, 需自动避让
-IS_BAOTA=false
+# 宝塔面板检测
 BT_PANEL_DIR="/www/server/panel"
-if [ -d "${BT_PANEL_DIR}" ]; then
-    IS_BAOTA=true
-    # 宝塔环境下部署到 /www/wwwroot/ 符合宝塔站点习惯, 便于宝塔文件管理
-    CLONE_DIR="/www/wwwroot/pansou"
-fi
+BT_DATA_DIR="${BT_PANEL_DIR}/data"
+IS_BAOTA=false
 
-# ---------- 颜色 ----------
+# 固定超管账密（用户要求）
+ADMIN_USER="admin@example.com"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="admin123"
+
+# 宝塔面板信息（安装后读取）
+BT_PANEL_PORT=""
+BT_PANEL_USER="admin"
+BT_PANEL_PASS=""
+BT_PANEL_PATH=""
+BT_PANEL_INSTALLED_BY_SCRIPT=false
+
+# 颜色
 if [ -t 1 ]; then
-    C_RED='\033[0;31m'
-    C_GREEN='\033[0;32m'
-    C_YELLOW='\033[0;33m'
-    C_BLUE='\033[0;34m'
-    C_BOLD='\033[1m'
-    C_OFF='\033[0m'
+    C_RED='\033[0;31m'; C_GREEN='\033[0;32m'; C_YELLOW='\033[0;33m'
+    C_BLUE='\033[0;34m'; C_BOLD='\033[1m'; C_OFF='\033[0m'
 else
     C_RED=''; C_GREEN=''; C_YELLOW=''; C_BLUE=''; C_BOLD=''; C_OFF=''
 fi
 
-# ---------- 日志 ----------
+# 日志
 log()   { echo -e "${C_BLUE}[install]${C_OFF} $*"; }
 ok()    { echo -e "${C_GREEN}[install]${C_OFF} $*"; }
 warn()  { echo -e "${C_YELLOW}[install]${C_OFF} $*"; }
 die()   { echo -e "${C_RED}[install][错误]${C_OFF} $*" >&2; exit 1; }
 
-# ---------- 参数解析 ----------
+# 参数解析
 PORT="${DEFAULT_PORT}"
 NO_CONFIRM=false
 while getopts "p:hy" opt; do
     case "$opt" in
         p) PORT="$OPTARG" ;;
         y) NO_CONFIRM=true ;;
-        h)
-            sed -n '2,20p' "$0" 2>/dev/null || true
-            exit 0
-            ;;
-        *)
-            die "未知参数: -$OPTARG  (使用 -h 查看帮助)"
-            ;;
+        h) sed -n '2,25p' "$0" 2>/dev/null || true; exit 0 ;;
+        *) die "未知参数: -$OPTARG  (使用 -h 查看帮助)" ;;
     esac
 done
 
 # ---------- 工具函数 ----------
-
-# 检测命令是否存在
 has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
-# 生成随机密码（优先 openssl，回退 /dev/urandom）
+# 生成随机强密码（优先 openssl, 回退 /dev/urandom）
 gen_pass() {
     local len="${1:-24}"
     if has_cmd openssl; then
@@ -111,142 +106,22 @@ gen_pass() {
     fi
 }
 
-# 生成管理员密码（12 位，避免特殊字符）
-gen_admin_pass() {
-    if has_cmd openssl; then
-        openssl rand -base64 12 2>/dev/null | tr -d '/+=' | cut -c1-12
-    else
-        head -c 9 /dev/urandom | base64 | tr -d '/+=' | cut -c1-12
-    fi
-}
-
-# 检测包管理器并安装
 install_pkg() {
     local pkg="$1"
-    if has_cmd apt-get; then
-        sudo apt-get update -qq && sudo apt-get install -y -qq "$pkg"
-    elif has_cmd yum; then
-        sudo yum install -y "$pkg"
-    elif has_cmd dnf; then
-        sudo dnf install -y "$pkg"
-    elif has_cmd apk; then
-        sudo apk add --no-cache "$pkg"
-    else
-        die "无法安装 $pkg：未识别的包管理器，请手动安装"
+    if has_cmd apt-get; then apt-get update -qq && apt-get install -y -qq "$pkg"
+    elif has_cmd yum; then yum install -y "$pkg"
+    elif has_cmd dnf; then dnf install -y "$pkg"
+    elif has_cmd apk; then apk add --no-cache "$pkg"
+    else die "无法安装 $pkg：未识别的包管理器，请手动安装"
     fi
 }
 
-# 安装 Docker
-ensure_docker() {
-    if has_cmd docker; then
-        ok "Docker 已安装: $(docker --version)"
-    else
-        # 宝塔环境下优先提示通过软件商店安装(更符合宝塔用户习惯), 并提供命令行备选
-        if [ "${IS_BAOTA}" = true ]; then
-            echo ""
-            warn "检测到宝塔面板环境, Docker 未安装。两种安装方式任选其一:"
-            echo ""
-            echo -e "  ${C_BOLD}方式一(推荐, 图形化):${C_OFF} 宝塔面板 → 软件商店 → 搜索 \"Docker管理器\" → 安装"
-            echo -e "  ${C_BOLD}方式二(命令行):${C_OFF} 本脚本将自动执行 get.docker.com 安装"
-            echo ""
-            if [ "${NO_CONFIRM}" = false ] && [ -t 0 ]; then
-                read -r -p "是否使用命令行方式自动安装 Docker? [Y/n] " ans
-                case "${ans:-Y}" in
-                    [Nn]*) die "请先在宝塔软件商店安装 Docker管理器, 然后重新运行本脚本" ;;
-                esac
-            fi
-        fi
-        log "未检测到 Docker，开始自动安装 ..."
-        if has_cmd curl; then
-            curl -fsSL https://get.docker.com | sh
-        elif has_cmd wget; then
-            wget -qO- https://get.docker.com | sh
-        else
-            die "未检测到 curl/wget，请先安装其中之一再重试"
-        fi
-        # 启动 Docker 守护进程
-        if has_cmd systemctl; then
-            sudo systemctl enable --now docker
-        fi
-        ok "Docker 安装完成: $(docker --version)"
-    fi
-
-    # 确认 docker daemon 运行
-    if ! docker info >/dev/null 2>&1; then
-        warn "Docker daemon 未运行，尝试启动 ..."
-        if has_cmd systemctl; then
-            # 启动 docker daemon, 首次启动会配置 iptables/网络桥接,
-            # 极端情况下可能短暂影响已有 SSH 连接。先提示用户, 启动后缓冲 5 秒。
-            sudo systemctl start docker
-            echo "[install] Docker daemon 启动中, 等待 5 秒缓冲网络(SSH 若断开请重连后重跑, 已生成配置会保留)..."
-            sleep 5
-        fi
-        docker info >/dev/null 2>&1 || die "Docker daemon 启动失败，请手动执行: sudo systemctl start docker"
-    fi
-    ok "Docker daemon 运行正常"
+# 获取服务器主 IP
+get_server_ip() {
+    hostname -I 2>/dev/null | awk '{print $1}' || echo "服务器IP"
 }
 
-# 检测 docker compose
-ensure_compose() {
-    if docker compose version >/dev/null 2>&1; then
-        COMPOSE_CMD="docker compose"
-        ok "Docker Compose (v2) 可用"
-    elif has_cmd docker-compose; then
-        COMPOSE_CMD="docker-compose"
-        ok "docker-compose (v1) 可用"
-    else
-        die "未检测到 Docker Compose，且无法自动安装。请手动安装：https://docs.docker.com/compose/install/"
-    fi
-}
-
-# 安装 git
-ensure_git() {
-    if has_cmd git; then
-        ok "git 已安装"
-        return
-    fi
-    log "未检测到 git，开始自动安装 ..."
-    install_pkg git
-    ok "git 安装完成"
-}
-
-# 确保在仓库目录内
-ensure_repo() {
-    if [ -f "docker-compose.yml" ] && [ -f "Dockerfile" ]; then
-        ok "当前目录已是项目仓库: $(pwd)"
-        PROJECT_DIR="$(pwd)"
-        return
-    fi
-
-    # 远程模式：克隆到固定目录
-    if [ -d "${CLONE_DIR}" ]; then
-        log "检测到已存在目录 ${CLONE_DIR}，尝试更新 ..."
-        cd "${CLONE_DIR}"
-        git pull --rebase || warn "git pull 失败，继续使用现有代码"
-    else
-        log "克隆仓库到 ${CLONE_DIR} ..."
-        git clone --depth=1 "${REPO_URL}" "${CLONE_DIR}"
-        cd "${CLONE_DIR}"
-    fi
-    PROJECT_DIR="$(pwd)"
-    ok "项目目录: ${PROJECT_DIR}"
-}
-
-# 检测端口是否被占用
-check_port() {
-    local port="$1"
-    if command -v ss >/dev/null 2>&1; then
-        if ss -tlnH | awk '{print $4}' | grep -qE ":${port}\$"; then
-            die "端口 ${port} 已被占用，请使用 -p 指定其他端口，例如: ./install.sh -p 9000"
-        fi
-    elif command -v netstat >/dev/null 2>&1; then
-        if netstat -tlnH 2>/dev/null | awk '{print $4}' | grep -qE ":${port}\$"; then
-            die "端口 ${port} 已被占用，请使用 -p 指定其他端口，例如: ./install.sh -p 9000"
-        fi
-    fi
-}
-
-# 检测端口是否被占用(返回 0=占用, 1=空闲), 不退出
+# 端口占用检测（返回 0=占用, 1=空闲）
 port_in_use() {
     local port="$1"
     if command -v ss >/dev/null 2>&1; then
@@ -257,69 +132,183 @@ port_in_use() {
     return 1
 }
 
-# 为 DB/Redis 暴露端口选择一个空闲端口
-# 用法: pick_free_port <首选端口> <最小> <最大>
-# 宝塔环境自带 MySQL(3306)/Redis(6379), 默认暴露端口会冲突, 自动改为空闲高位端口
-pick_free_port() {
-    local prefer="$1" lo="$2" hi="$3"
-    # 首选端口空闲则直接用
-    if ! port_in_use "${prefer}"; then
-        echo "${prefer}"
-        return 0
-    fi
-    # 否则在 [lo, hi] 区间找空闲端口
-    local p
-    for p in $(seq "${lo}" "${hi}"); do
-        if ! port_in_use "${p}"; then
-            echo "${p}"
+# Web 端口冲突检测：从 PORT 起 +1 递增直到空闲（上限 WEB_PORT_MAX）
+pick_web_port() {
+    local p="${PORT}"
+    while [ "$p" -le "${WEB_PORT_MAX}" ]; do
+        if ! port_in_use "$p"; then
+            echo "$p"
             return 0
         fi
+        warn "端口 ${p} 被占用, 自动 +1 尝试 $((p + 1)) ..."
+        p=$((p + 1))
     done
-    # 全部占用, 返回首选(让 docker 启动时报错, 用户可见)
-    echo "${prefer}"
-    return 0
+    die "端口 ${PORT}-${WEB_PORT_MAX} 全部被占用，请使用 -p 指定其他起始端口"
 }
 
-# 生成 .env.docker
-generate_env() {
-    local env_file="${PROJECT_DIR}/.env.docker"
-
-    if [ -f "${env_file}" ]; then
-        warn "检测到已存在 ${env_file}，保留既有配置（如需重置请删除该文件后重跑）"
-        # 读取既有端口用于后续健康检查与输出
-        PORT="$(grep -oP '^WEB_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "${PORT}")"
-        ADMIN_PASSWORD_OUT="$(grep -oP '^ADMIN_PASSWORD=\K.*' "${env_file}" 2>/dev/null || echo "")"
-        DB_EXPOSE_PORT_OUT="$(grep -oP '^DB_EXPOSE_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "3306")"
-        REDIS_EXPOSE_PORT_OUT="$(grep -oP '^REDIS_EXPOSE_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "6379")"
+# ---------- 阶段 1: 检测/安装宝塔面板 ----------
+install_baota() {
+    log "[1/7] 检测宝塔面板 ..."
+    if [ -d "${BT_PANEL_DIR}" ]; then
+        IS_BAOTA=true
+        ok "已安装宝塔面板: ${BT_PANEL_DIR}"
+        read_baota_info
         return
     fi
 
-    log "生成随机密码与配置文件 ${env_file} ..."
+    # 未安装宝塔 → 自动拉取官方安装脚本
+    warn "未检测到宝塔面板, 开始自动安装（耗时 10-30 分钟，会自动装 Nginx/MySQL/PHP 等）..."
+    if [ "${NO_CONFIRM}" = false ] && [ -t 0 ]; then
+        read -r -p "即将自动安装宝塔面板，是否继续？[Y/n] " ans
+        case "${ans:-Y}" in
+            [Nn]*) die "已取消。请手动安装宝塔面板后重新运行本脚本" ;;
+        esac
+    fi
 
-    local db_pass db_root_pass redis_pass admin_pass app_key aes_key
+    # 宝塔官方国内版安装脚本（Debian/Ubuntu/CentOS 通用）
+    # 用 yes 管道自动确认交互提示
+    local bt_install_script="/tmp/bt_install_panel.sh"
+    log "下载宝塔安装脚本 ..."
+    if has_cmd curl; then
+        curl -fsSL https://download.bt.cn/install/install_panel.sh -o "${bt_install_script}"
+    elif has_cmd wget; then
+        wget -qO "${bt_install_script}" https://download.bt.cn/install/install_panel.sh
+    else
+        die "需要 curl 或 wget 来下载宝塔安装脚本，请先安装"
+    fi
+
+    [ -f "${bt_install_script}" ] || die "宝塔安装脚本下载失败"
+
+    log "执行宝塔面板安装（自动确认，请耐心等待）..."
+    # 宝塔安装脚本交互式，用 yes 管道自动确认所有提示
+    yes | bash "${bt_install_script}" ed8484bec || {
+        warn "宝塔安装脚本返回非零状态，检查是否已实际完成 ..."
+    }
+    rm -f "${bt_install_script}"
+
+    # 等待宝塔面板目录就绪
+    local i=0
+    while [ $i -lt 30 ]; do
+        [ -d "${BT_PANEL_DIR}" ] && break
+        sleep 2
+        i=$((i + 1))
+    done
+
+    if [ -d "${BT_PANEL_DIR}" ]; then
+        IS_BAOTA=true
+        BT_PANEL_INSTALLED_BY_SCRIPT=true
+        ok "宝塔面板安装完成"
+        read_baota_info
+    else
+        warn "宝塔面板目录未出现，可能安装未完成或需重启。继续后续 Docker 部署（项目仍可用，仅缺宝塔面板管理）"
+        IS_BAOTA=false
+    fi
+}
+
+# 读取宝塔面板信息（端口/密码/入口）
+read_baota_info() {
+    BT_PANEL_PORT="$(cat "${BT_DATA_DIR}/port.pl" 2>/dev/null || echo "")"
+    BT_PANEL_PASS="$(cat "${BT_PANEL_DIR}/default.pl" 2>/dev/null || echo "")"
+    BT_PANEL_PATH="$(cat "${BT_DATA_DIR}/admin_path.pl" 2>/dev/null || echo "")"
+    # 去除可能的换行
+    BT_PANEL_PORT="$(echo "${BT_PANEL_PORT}" | tr -d '[:space:]')"
+    BT_PANEL_PASS="$(echo "${BT_PANEL_PASS}" | tr -d '[:space:]')"
+    BT_PANEL_PATH="$(echo "${BT_PANEL_PATH}" | tr -d '[:space:]')"
+    BT_PANEL_USER="admin"
+
+    if [ -n "${BT_PANEL_PORT}" ]; then
+        ok "宝塔面板信息已读取: 端口 ${BT_PANEL_PORT}"
+    fi
+}
+
+# ---------- 阶段 2: 检测/安装 Docker ----------
+ensure_docker() {
+    log "[2/7] 检测 Docker ..."
+    if has_cmd docker; then
+        ok "Docker 已安装: $(docker --version)"
+    else
+        warn "未检测到 Docker，开始自动安装 ..."
+        if has_cmd curl; then
+            curl -fsSL https://get.docker.com | sh
+        elif has_cmd wget; then
+            wget -qO- https://get.docker.com | sh
+        else
+            die "未检测到 curl/wget，请先安装其中之一再重试"
+        fi
+        if has_cmd systemctl; then
+            systemctl enable --now docker
+        fi
+        ok "Docker 安装完成: $(docker --version)"
+    fi
+
+    # 确认 docker daemon 运行
+    if ! docker info >/dev/null 2>&1; then
+        warn "Docker daemon 未运行，尝试启动 ..."
+        if has_cmd systemctl; then
+            systemctl start docker
+            echo "[install] Docker daemon 启动中, 等待 5 秒缓冲网络(SSH 若断开请重连后重跑, 已生成配置会保留)..."
+            sleep 5
+        fi
+        docker info >/dev/null 2>&1 || die "Docker daemon 启动失败，请手动执行: systemctl start docker"
+    fi
+    ok "Docker daemon 运行正常"
+}
+
+# ---------- 阶段 3: 确认 Docker Compose ----------
+ensure_compose() {
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD="docker compose"; ok "Docker Compose (v2) 可用"
+    elif has_cmd docker-compose; then
+        COMPOSE_CMD="docker-compose"; ok "docker-compose (v1) 可用"
+    else
+        die "未检测到 Docker Compose。请安装 Docker Compose v2（新版 Docker 已内置）"
+    fi
+}
+
+# ---------- 阶段 4: 克隆项目 ----------
+ensure_repo() {
+    log "[4/7] 准备项目代码 ..."
+    # 确保父目录存在
+    mkdir -p "$(dirname "${DEPLOY_DIR}")"
+
+    if [ -f "${DEPLOY_DIR}/docker-compose.yml" ] && [ -f "${DEPLOY_DIR}/Dockerfile" ]; then
+        log "检测到已存在 ${DEPLOY_DIR}，尝试更新 ..."
+        cd "${DEPLOY_DIR}"
+        if has_cmd git; then
+            git pull --rebase || warn "git pull 失败，继续使用现有代码"
+        fi
+    else
+        if ! has_cmd git; then
+            log "安装 git ..."
+            install_pkg git
+        fi
+        log "克隆仓库到 ${DEPLOY_DIR} ..."
+        git clone --depth=1 "${REPO_URL}" "${DEPLOY_DIR}"
+        cd "${DEPLOY_DIR}"
+    fi
+    PROJECT_DIR="$(pwd)"
+    ok "项目目录: ${PROJECT_DIR}"
+}
+
+# ---------- 阶段 5: 生成 .env.docker ----------
+generate_env() {
+    local env_file="${PROJECT_DIR}/.env.docker"
+    if [ -f "${env_file}" ]; then
+        warn "检测到已存在 ${env_file}，保留既有配置（如需重置请删除该文件后重跑）"
+        PORT="$(grep -oP '^WEB_PORT=\K\d+' "${env_file}" 2>/dev/null || echo "${PORT}")"
+        ok "使用既有 WEB_PORT=${PORT}"
+        return
+    fi
+
+    log "[5/7] 生成配置文件 ${env_file} ..."
+
+    # DB/Redis 密码用 openssl 随机生成（真实强密码，非硬编码占位）
+    local db_pass db_root_pass redis_pass app_key aes_key
     db_pass="$(gen_pass 24)"
     db_root_pass="$(gen_pass 32)"
     redis_pass="$(gen_pass 24)"
-    admin_pass="$(gen_admin_pass)"
     app_key="$(gen_pass 32)"
     aes_key="$(gen_pass 32)"
-
-    ADMIN_PASSWORD_OUT="${admin_pass}"
-
-    # DB/Redis 暴露端口冲突避让
-    # 宝塔自带 MySQL(3306)/Redis(6379), 默认暴露端口会冲突导致容器启动失败
-    # 自动检测: 首选端口被占用则在高位区间找空闲端口
-    local db_expose redis_expose
-    db_expose="$(pick_free_port 3306 3326 3399)"
-    redis_expose="$(pick_free_port 6379 6399 6499)"
-    if [ "${db_expose}" != "3306" ]; then
-        warn "宿主机 3306 端口被占用(可能是宝塔/已有 MySQL), DB 暴露端口改为 ${db_expose}"
-    fi
-    if [ "${redis_expose}" != "6379" ]; then
-        warn "宿主机 6379 端口被占用(可能是宝塔/已有 Redis), Redis 暴露端口改为 ${redis_expose}"
-    fi
-    DB_EXPOSE_PORT_OUT="${db_expose}"
-    REDIS_EXPOSE_PORT_OUT="${redis_expose}"
 
     cat > "${env_file}" <<EOF
 # =============================================================================
@@ -336,11 +325,12 @@ DB_NAME=pan_search
 DB_USER=pansou
 DB_PASSWORD=${db_pass}
 DB_ROOT_PASSWORD=${db_root_pass}
-DB_EXPOSE_PORT=${db_expose}
+# DB/Redis 不对外暴露端口（仅容器内通信，更安全）
+DB_EXPOSE_PORT=0
 
 # ---------- Redis ----------
 REDIS_PASSWORD=${redis_pass}
-REDIS_EXPOSE_PORT=${redis_expose}
+REDIS_EXPOSE_PORT=0
 
 # ---------- 应用 ----------
 APP_DEBUG=false
@@ -350,7 +340,7 @@ SESSION_SAMESITE=Lax
 AES_KEY=${aes_key}
 CORS_ALLOW_ORIGIN=
 
-# ---------- 邮件 SMTP（未配置，请按需填写后重启） ----------
+# ---------- 邮件 SMTP（未配置，安装后登录后台 /admin → 系统配置 在线补充） ----------
 MAIL_HOST=smtp.qq.com
 MAIL_PORT=465
 MAIL_USER=
@@ -359,7 +349,7 @@ MAIL_FROM=
 MAIL_FROM_NAME=网盘搜索
 MAIL_ENCRYPTION=ssl
 
-# ---------- 彩虹易支付（未配置，请按需填写后重启） ----------
+# ---------- 彩虹易支付（未配置，安装后登录后台 /admin → 系统配置 在线补充） ----------
 PAY_PID=
 PAY_KEY=
 PAY_API=
@@ -367,166 +357,244 @@ PAY_NOTIFY_URL=
 PAY_RETURN_URL=
 
 # ---------- 管理员账号（首次启动自动创建） ----------
-ADMIN_USER=admin
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=${admin_pass}
+# 登录用户名为 ADMIN_USER（写入 admin_users.username 字段）
+ADMIN_USER=${ADMIN_USER}
+ADMIN_EMAIL=${ADMIN_EMAIL}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 EOF
-
     chmod 600 "${env_file}"
     ok ".env.docker 已生成（权限 600）"
 }
 
-# 构建并启动服务
+# ---------- 阶段 6: 构建并启动容器 ----------
 start_services() {
     cd "${PROJECT_DIR}"
-    log "构建镜像并启动服务（首次可能需要 5-10 分钟）..."
+    log "[6/7] 构建镜像并启动服务（首次可能需要 5-10 分钟）..."
     ${COMPOSE_CMD} --env-file .env.docker up -d --build
     ok "已发出启动命令"
 }
 
-# 等待容器健康
+# ---------- 阶段 7: 等待健康检查 ----------
 wait_healthy() {
-    local container="$1"
-    local name="$2"
-    local timeout="${3:-120}"
-    local i=0
+    local container="$1" name="$2" timeout="${3:-120}" i=0
     log "等待 ${name} 容器健康 ..."
-    while [ $i -lt "$timeout" ]; do
+    while [ "$i" -lt "$timeout" ]; do
         local status
         status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "${container}" 2>/dev/null || echo "missing")"
         case "$status" in
-            healthy)
-                ok "${name} 容器健康（等待 ${i} 秒）"
-                return 0
-                ;;
+            healthy) ok "${name} 容器健康（等待 ${i} 秒）"; return 0 ;;
             unhealthy)
                 warn "${name} 容器状态 unhealthy，输出最近日志："
                 docker logs --tail 30 "${container}" 2>&1 || true
-                return 1
-                ;;
+                return 1 ;;
         esac
-        i=$((i + 5))
-        sleep 5
+        i=$((i + 5)); sleep 5
     done
-    warn "${name} 容器在 ${timeout} 秒内未达到健康状态（当前: ${status:-unknown}）"
+    warn "${name} 容器在 ${timeout} 秒内未达到健康状态"
     return 1
 }
 
-# 等待 HTTP 就绪
 wait_http() {
-    local url="$1"
-    local timeout="${2:-60}"
-    local i=0
+    local url="$1" timeout="${2:-60}" i=0
     log "等待 Web 服务响应: ${url}"
-    while [ $i -lt "$timeout" ]; do
+    while [ "$i" -lt "$timeout" ]; do
         if curl -fsS --max-time 3 "${url}" >/dev/null 2>&1; then
-            ok "Web 服务已就绪（等待 ${i} 秒）"
-            return 0
+            ok "Web 服务已就绪（等待 ${i} 秒）"; return 0
         fi
-        i=$((i + 3))
-        sleep 3
+        i=$((i + 3)); sleep 3
     done
     warn "Web 服务在 ${timeout} 秒内未响应"
     return 1
 }
 
-# ---------- 主流程 ----------
+wait_services() {
+    log "[7/7] 等待服务就绪 ..."
+    wait_healthy "pansou-mysql" "MySQL" 120 || warn "MySQL 健康检查未通过，继续尝试 ..."
+    wait_healthy "pansou-redis" "Redis" 30  || warn "Redis 健康检查未通过，继续尝试 ..."
+    wait_healthy "pansou-app"   "App"  "${HEALTH_TIMEOUT}" || warn "App 容器健康检查超时"
+    wait_http "http://127.0.0.1:${PORT}/healthz" 60 || warn "HTTP 探测未通过，请查看日志"
+}
 
+# ---------- 保存部署信息到 /root/pansou-deploy-info.txt ----------
+save_info_file() {
+    local ip server_time
+    ip="$(get_server_ip)"
+    server_time="$(date '+%Y-%m-%d %H:%M:%S')"
+
+    # 读取实际生成的密码（从 .env.docker）
+    local env_file="${PROJECT_DIR}/.env.docker"
+    local db_pass db_root_pass redis_pass
+    db_pass="$(grep -oP '^DB_PASSWORD=\K.*' "${env_file}" 2>/dev/null || echo '')"
+    db_root_pass="$(grep -oP '^DB_ROOT_PASSWORD=\K.*' "${env_file}" 2>/dev/null || echo '')"
+    redis_pass="$(grep -oP '^REDIS_PASSWORD=\K.*' "${env_file}" 2>/dev/null || echo '')"
+
+    # 宝塔面板信息
+    local bt_section
+    if [ "${IS_BAOTA}" = true ] && [ -n "${BT_PANEL_PORT}" ]; then
+        local bt_url="http://${ip}:${BT_PANEL_PORT}"
+        [ -n "${BT_PANEL_PATH}" ] && bt_url="${bt_url}/${BT_PANEL_PATH}"
+        bt_section=$(cat <<BTEOF
+面板地址: ${bt_url}
+账号: ${BT_PANEL_USER}
+密码: ${BT_PANEL_PASS}
+BTEOF
+)
+        [ "${BT_PANEL_INSTALLED_BY_SCRIPT}" = true ] && bt_section="${bt_section}
+（由本脚本自动安装）"
+    else
+        bt_section="未安装宝塔面板（项目已部署，可用 Docker 管理）"
+    fi
+
+    cat > "${INFO_FILE}" <<EOF
+============================================
+ 网盘资源搜索引擎 - 部署信息
+ 生成时间: ${server_time}
+ 服务器IP: ${ip}
+============================================
+
+【宝塔面板】
+${bt_section}
+
+【项目访问】
+前台地址: http://${ip}:${PORT}/
+后台地址: http://${ip}:${PORT}/admin/login
+超管账号: ${ADMIN_USER}
+超管密码: ${ADMIN_PASSWORD}
+
+【项目目录】
+${PROJECT_DIR}
+
+【数据库（容器内，不对外暴露）】
+数据库名: pan_search
+用户名: pansou
+密码: ${db_pass}
+Root密码: ${db_root_pass}
+
+【Redis（容器内，不对外暴露）】
+密码: ${redis_pass}
+
+【Web 端口】
+${PORT}（占用时已自动 +1 递增）
+
+【运维命令】
+cd ${PROJECT_DIR}
+./docker-deploy.sh status     # 查看服务状态
+./docker-deploy.sh logs       # 查看实时日志
+./docker-deploy.sh restart    # 重启服务
+./docker-deploy.sh down       # 停止服务
+./docker-deploy.sh up         # 启动服务
+
+【安全提醒】
+1. 默认超管密码 admin123 为弱密码，请登录后台 /admin 立即修改
+2. DB/Redis 不对外暴露端口，仅容器内通信
+3. 请在宝塔面板 → 安全 → 防火墙 放行 Web 端口 ${PORT}
+4. 邮件 SMTP 与彩虹易支付未配置，登录后台 /admin → 系统配置 在线补充
+5. 本文件含敏感凭据，请妥善保管（权限已设为 600）
+
+============================================
+EOF
+    chmod 600 "${INFO_FILE}"
+    ok "部署信息已保存: ${INFO_FILE}（权限 600）"
+}
+
+# ---------- 终端输出汇总 ----------
+print_summary() {
+    local ip
+    ip="$(get_server_ip)"
+
+    echo ""
+    echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
+    echo -e "${C_GREEN}${C_BOLD}  部署完成！${C_OFF}"
+    echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
+    echo ""
+
+    # 宝塔面板信息
+    if [ "${IS_BAOTA}" = true ] && [ -n "${BT_PANEL_PORT}" ]; then
+        local bt_url="http://${ip}:${BT_PANEL_PORT}"
+        [ -n "${BT_PANEL_PATH}" ] && bt_url="${bt_url}/${BT_PANEL_PATH}"
+        echo -e "  ${C_BOLD}【宝塔面板】${C_OFF}"
+        echo -e "    地址: ${bt_url}"
+        echo -e "    账号: ${BT_PANEL_USER}"
+        echo -e "    密码: ${C_YELLOW}${BT_PANEL_PASS}${C_OFF}"
+        [ "${BT_PANEL_INSTALLED_BY_SCRIPT}" = true ] && echo -e "    ${C_YELLOW}(由本脚本自动安装)${C_OFF}"
+        echo ""
+    fi
+
+    # 项目访问
+    echo -e "  ${C_BOLD}【项目访问】${C_OFF}"
+    echo -e "    前台: http://${ip}:${PORT}/"
+    echo -e "    后台: http://${ip}:${PORT}/admin/login"
+    echo ""
+    echo -e "  ${C_BOLD}超管账号:${C_OFF}  ${ADMIN_USER}"
+    echo -e "  ${C_BOLD}超管密码:${C_OFF}  ${C_YELLOW}${ADMIN_PASSWORD}${C_OFF}"
+    echo ""
+    echo -e "  ${C_BOLD}项目目录:${C_OFF}  ${PROJECT_DIR}"
+    echo -e "  ${C_BOLD}Web 端口:${C_OFF}  ${PORT}"
+    echo -e "  ${C_BOLD}部署信息:${C_OFF}  ${INFO_FILE}（含数据库/Redis 密码等完整凭据）"
+    echo ""
+
+    # 宝塔防火墙提醒
+    if [ "${IS_BAOTA}" = true ]; then
+        echo -e "  ${C_YELLOW}${C_BOLD}[必须] 宝塔防火墙放行:${C_OFF}"
+        echo -e "    宝塔面板 → 安全 → 防火墙 → 放行端口 ${PORT}（否则外网无法访问）"
+        echo ""
+    fi
+
+    echo -e "  ${C_YELLOW}提醒：邮件 SMTP 与彩虹易支付未配置，${C_OFF}"
+    echo -e "  ${C_YELLOW}登录后台 /admin → 系统配置 在线补充${C_OFF}"
+    echo ""
+    echo -e "  ${C_YELLOW}安全：默认密码 admin123 为弱密码，请立即登录后台修改！${C_OFF}"
+    echo ""
+}
+
+# ---------- 主流程 ----------
 main() {
     echo ""
     echo -e "${C_BOLD}=================================================${C_OFF}"
-    echo -e "${C_BOLD}  网盘资源搜索引擎 - 一键部署${C_OFF}"
+    echo -e "${C_BOLD}  网盘资源搜索引擎 - SSH 一键部署${C_OFF}"
+    echo -e "${C_BOLD}  （宝塔面板 + Docker）${C_OFF}"
     echo -e "${C_BOLD}=================================================${C_OFF}"
     echo ""
 
-    # 0. 确认（非交互模式跳过）
     if [ "${NO_CONFIRM}" = false ] && [ -t 0 ]; then
-        read -r -p "即将开始部署（端口 ${PORT}），是否继续？[Y/n] " ans
+        read -r -p "即将开始部署（Web 端口起始 ${PORT}），是否继续？[Y/n] " ans
         case "${ans:-Y}" in
             [Yy]*) ;;
             *) warn "已取消"; exit 0 ;;
         esac
     fi
 
-    # 1. 环境检测与安装
-    log "[1/6] 检测并安装依赖 ..."
-    ensure_docker
-    ensure_compose
-    ensure_git
+    # 阶段 1: 宝塔面板
+    install_baota
 
-    # 2. 确保代码就位
-    log "[2/6] 准备项目代码 ..."
+    # 阶段 2: Docker
+    ensure_docker
+
+    # 阶段 3: Docker Compose
+    ensure_compose
+
+    # 阶段 4: 克隆项目
     ensure_repo
 
-    # 3. 端口检查
-    log "[3/6] 检查端口 ${PORT} ..."
-    check_port "${PORT}"
+    # 阶段 5: Web 端口冲突检测（+1 递增）
+    log "[3/7] 检测 Web 端口 ..."
+    PORT="$(pick_web_port)"
+    ok "使用 Web 端口: ${PORT}"
 
-    # 4. 生成配置
-    log "[4/6] 生成配置文件 ..."
+    # 阶段 6: 生成配置
     generate_env
 
-    # 5. 启动服务
-    log "[5/6] 构建并启动容器 ..."
+    # 阶段 7: 构建启动
     start_services
 
-    # 6. 等待就绪
-    log "[6/6] 等待服务就绪 ..."
-    wait_healthy "pansou-mysql" "MySQL" 120 || warn "MySQL 健康检查未通过，继续尝试 ..."
-    wait_healthy "pansou-redis" "Redis" 30  || warn "Redis 健康检查未通过，继续尝试 ..."
-    wait_healthy "pansou-app"   "App"  "${HEALTH_TIMEOUT}" || warn "App 容器健康检查超时"
-    wait_http "http://127.0.0.1:${PORT}/healthz" 60 || warn "HTTP 探测未通过，请查看日志"
+    # 等待就绪
+    wait_services
 
-    # 输出结果
-    echo ""
-    echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
-    echo -e "${C_GREEN}${C_BOLD}  部署完成！${C_OFF}"
-    if [ "${IS_BAOTA}" = true ]; then
-        echo -e "${C_GREEN}${C_BOLD}  (宝塔面板环境)${C_OFF}"
-    fi
-    echo -e "${C_GREEN}${C_BOLD}=================================================${C_OFF}"
-    echo ""
-    echo -e "  ${C_BOLD}前台访问:${C_OFF}  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo '服务器IP'):${PORT}"
-    echo -e "  ${C_BOLD}后台访问:${C_OFF}  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo '服务器IP'):${PORT}/admin/login"
-    echo ""
-    echo -e "  ${C_BOLD}管理员账号:${C_OFF}  admin"
-    echo -e "  ${C_BOLD}管理员密码:${C_OFF}  ${C_YELLOW}${ADMIN_PASSWORD_OUT}${C_OFF}"
-    echo ""
-    echo -e "  ${C_BOLD}数据库密码:${C_OFF}  见 ${PROJECT_DIR}/.env.docker （DB_PASSWORD）"
-    echo -e "  ${C_BOLD}Redis 密码:${C_OFF}   见 ${PROJECT_DIR}/.env.docker （REDIS_PASSWORD）"
-    echo -e "  ${C_BOLD}DB 暴露端口:${C_OFF}  ${DB_EXPOSE_PORT_OUT}（容器内 3306）"
-    echo -e "  ${C_BOLD}Redis 暴露端口:${C_OFF}  ${REDIS_EXPOSE_PORT_OUT}（容器内 6379）"
-    echo ""
-    echo -e "  ${C_YELLOW}请妥善保存以上凭据！${C_OFF}"
-    echo ""
-    echo -e "  ${C_BOLD}项目目录:${C_OFF}  ${PROJECT_DIR}"
-    echo ""
-    echo -e "  ${C_BOLD}常用运维命令:${C_OFF}"
-    echo -e "    cd ${PROJECT_DIR}"
-    echo -e "    ./docker-deploy.sh status     # 查看服务状态"
-    echo -e "    ./docker-deploy.sh logs       # 查看实时日志"
-    echo -e "    ./docker-deploy.sh restart    # 重启服务"
-    echo -e "    ./docker-deploy.sh down       # 停止服务"
-    echo ""
+    # 保存信息文件
+    save_info_file
 
-    # 宝塔环境专属提醒: 防火墙放行 + 反向代理
-    if [ "${IS_BAOTA}" = true ]; then
-        echo -e "  ${C_YELLOW}${C_BOLD}[宝塔] 防火墙放行（必须，否则外网无法访问）:${C_OFF}"
-        echo -e "    宝塔面板 → 安全 → 防火墙 → 放行端口 ${PORT}"
-        if [ "${DB_EXPOSE_PORT_OUT}" != "3306" ] || [ "${REDIS_EXPOSE_PORT_OUT}" != "6379" ]; then
-            echo -e "    如需远程连 DB/Redis, 另放行 ${DB_EXPOSE_PORT_OUT} / ${REDIS_EXPOSE_PORT_OUT}（生产环境不建议暴露）"
-        fi
-        echo ""
-        echo -e "  ${C_BOLD}[宝塔] 配置域名 + HTTPS（可选，推荐）:${C_OFF}"
-        echo -e "    宝塔面板 → 网站 → 添加站点（域名）→ 反向代理 → 目标 http://127.0.0.1:${PORT}"
-        echo -e "    申请 SSL 证书: 站点设置 → SSL → Let's Encrypt"
-        echo ""
-    fi
-
-    echo -e "  ${C_YELLOW}提醒：邮件 SMTP 与彩虹易支付未配置，${C_OFF}"
-    echo -e "  ${C_YELLOW}如需启用注册验证码与积分充值，请编辑 .env.docker 后执行:${C_OFF}"
-    echo -e "  ${C_YELLOW}  vi .env.docker && ./docker-deploy.sh restart${C_OFF}"
-    echo ""
+    # 终端输出
+    print_summary
 }
 
 main "$@"

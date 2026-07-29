@@ -32,8 +32,10 @@ services:
       - ./docker/mysql-conf.cnf:/etc/mysql/conf.d/pansou.cnf:ro
       - ./database/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
       - ./database/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
-    ports:
-      - "${DB_EXPOSE_PORT:-3306}:3306"
+    # 端口默认不对外暴露（生产环境仅容器内通信，更安全）
+    # 如需外部访问 DB，取消下行注释并指定宿主机端口：
+    # ports:
+    #   - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-pansou_root_2024}"]
       interval: 10s
@@ -62,8 +64,10 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - redis-data:/data
-    ports:
-      - "${REDIS_EXPOSE_PORT:-6379}:6379"
+    # 端口默认不对外暴露（生产环境仅容器内通信，更安全）
+    # 如需外部访问 Redis，取消下行注释并指定宿主机端口：
+    # ports:
+    #   - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

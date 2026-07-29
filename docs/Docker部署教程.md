@@ -124,13 +124,13 @@ sudo systemctl restart docker
 
 ### 3.0 真·一条命令（推荐，零交互）
 
-无需预先 clone 仓库，无需手动编辑配置文件，一条命令完成全部部署：
+无需预先 clone 仓库，无需上传源码，一条 SSH 命令完成全部部署（含宝塔面板自动安装）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
 ```
 
-自定义端口（默认 8080）：
+自定义 Web 端口起始值（默认 8080，被占用则自动 +1 递增）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -p 9000
@@ -142,46 +142,68 @@ curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | 
 curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash -s -- -y
 ```
 
-> **宝塔面板用户专属说明**：脚本会自动检测宝塔环境（`/www/server/panel` 存在），并做以下智能适配，无需额外操作：
->
-> | 适配项 | 说明 |
-> |--------|------|
-> | 部署目录 | 自动改为 `/www/wwwroot/pansou`（符合宝塔站点习惯，便于文件管理） |
-> | Docker 安装 | Docker 未装时，提示可通过「宝塔软件商店 → Docker管理器」安装，或命令行自动装 |
-> | 端口冲突避让 | 宝塔自带 MySQL(3306)/Redis(6379) 会被占用，脚本自动把 DB/Redis 暴露端口改为空闲高位端口（如 3326/6399），避免容器启动失败 |
-> | 防火墙提醒 | 部署完成后提示在「宝塔面板 → 安全 → 防火墙」放行 Web 端口 |
-> | 反代配置 | 提示通过「宝塔面板 → 网站 → 反向代理」配置域名 + HTTPS |
->
+**脚本执行流程：**
+
+| 阶段 | 动作 |
+|------|------|
+| 1. 宝塔面板 | 检测 `/www/server/panel`，**未安装则自动拉取宝塔官方脚本安装**（耗时 10-30 分钟） |
+| 2. Docker | 检测并自动安装 Docker（get.docker.com），启动 daemon |
+| 3. Docker Compose | 确认 compose v2/v1 可用 |
+| 4. 代码准备 | 自动 `git clone` 到 `/www/wwwroot/pansou` |
+| 5. 端口检测 | **Web 端口从 8080 起，被占用自动 +1 递增**（8081、8082...） |
+| 6. 生成配置 | DB/Redis 密码用 openssl 随机生成；**固定超管 admin@example.com / admin123**；DB/Redis 不对外暴露端口 |
+| 7. 启动服务 | `docker compose up -d --build`，启动 mysql / redis / app / worker 四容器 |
+| 8. 等待就绪 | 轮询健康检查 + 探测 `/healthz` |
+| 9. 输出凭据 | 终端打印 + **保存到 `/root/pansou-deploy-info.txt`**（权限 600） |
+
+**关键设计：**
+
+- **宝塔自动安装**：服务器未装宝塔时，脚本自动拉取 `download.bt.cn/install/install_panel.sh` 安装，并用 `yes` 管道自动确认交互。安装后读取 `/www/server/panel/data/{port.pl,default.pl,admin_path.pl}` 获取面板地址/账号/密码。
+- **Web 端口 +1 递增**：默认 8080，若被占用（如宝塔已有站点）自动尝试 8081、8082... 直至空闲（上限 9999），避免端口冲突启动失败。
+- **DB/Redis 不暴露**：MySQL/Redis 仅容器内网络通信，不对宿主机暴露端口（生产环境更安全，避免数据库被公网扫描）。
+- **固定超管账密**：`admin@example.com / admin123`（写入 admin_users.username 字段），部署后请立即登录后台修改密码。
+- **部署信息文件**：所有凭据（宝塔面板、项目地址、超管账密、DB/Redis 密码）保存到 `/root/pansou-deploy-info.txt`，权限 600。
+
 > 详细的宝塔专属操作见下方 [3.0.1 宝塔面板一键部署（专属指南）](#301-宝塔面板一键部署专属指南)。
 
 #### 3.0.1 宝塔面板一键部署（专属指南）
 
-适用场景：服务器已安装宝塔面板，希望通过 Docker 方式部署本系统。
+适用场景：希望全自动部署（含宝塔面板安装）的用户。
 
-**第 1 步：安装 Docker（二选一）**
-
-- **方式 A（图形化，推荐新手）**：宝塔面板 → 软件商店 → 搜索「Docker管理器」→ 点击安装
-- **方式 B（命令行）**：宝塔终端执行
-  ```bash
-  curl -fsSL https://get.docker.com | sh
-  sudo systemctl enable --now docker
-  ```
-
-**第 2 步：宝塔终端执行一键命令**
+**第 1 步：SSH 登录服务器执行一条命令**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | bash
 ```
 
-脚本会自动识别宝塔环境，部署到 `/www/wwwroot/pansou`，并自动避开 3306/6379 端口冲突。
+脚本会自动完成以下全部工作，**无需任何手动操作**：
 
-**第 3 步：宝塔防火墙放行端口（必须）**
+1. 检测宝塔面板是否安装
+   - **已安装** → 直接读取既有面板信息（端口/账号/密码）
+   - **未安装** → 自动拉取宝塔官方安装脚本，`yes` 管道自动确认，完成安装（10-30 分钟）
+2. 检测并安装 Docker（未装则 get.docker.com 自动安装）
+3. 克隆项目到 `/www/wwwroot/pansou`
+4. Web 端口冲突检测（8080 被占用自动 +1 递增）
+5. 生成配置（固定超管 admin@example.com / admin123，DB/Redis 不暴露）
+6. 构建并启动 4 个容器（mysql/redis/app/worker）
+7. 等待健康检查通过
+8. 终端输出 + 保存 `/root/pansou-deploy-info.txt`
 
-部署完成后，脚本会输出 Web 端口（默认 8080）。在宝塔面板放行：
+**第 2 步：宝塔防火墙放行端口（必须）**
+
+部署完成后，脚本会输出实际使用的 Web 端口（默认 8080，占用则 +1）。在宝塔面板放行：
 
 > 宝塔面板 → 安全 → 防火墙 → 添加端口规则 → 放行 `8080`（TCP）
 
 > **重要**：宝塔防火墙默认不放行非标准端口，不放行则外网无法访问，但本机 `curl 127.0.0.1:8080` 正常。这是宝塔环境最常见的「部署成功但访问不了」问题。
+
+**第 3 步：查看部署信息**
+
+```bash
+cat /root/pansou-deploy-info.txt
+```
+
+文件包含：宝塔面板地址/账号/密码、项目前后台地址、超管账密、数据库/Redis 密码、运维命令、安全提醒（权限 600）。
 
 **第 4 步：配置域名 + HTTPS（可选，推荐生产）**
 
@@ -190,18 +212,25 @@ curl -fsSL https://raw.githubusercontent.com/laobi465/xiaosou/main/install.sh | 
 1. 宝塔面板 → 网站 → 添加站点（填入你的域名，纯静态即可）
 2. 站点设置 → 反向代理 → 添加反向代理
    - 代理名称：`pansou`
-   - 目标 URL：`http://127.0.0.1:8080`
+   - 目标 URL：`http://127.0.0.1:8080`（端口按实际替换）
    - 发送域名：`$host`
 3. 站点设置 → SSL → Let's Encrypt → 申请免费证书 → 强制 HTTPS
 
 配置完成后，直接通过域名访问，无需带端口号。
 
+**第 5 步：登录后台配置 SMTP/支付（必须，否则注册/充值不可用）**
+
+用 `admin@example.com / admin123` 登录 `/admin` → 系统配置 → 在线填写 SMTP 与彩虹易支付参数（即时生效，无需重启）。
+
 **宝塔环境常见问题：**
 
 | 现象 | 原因 | 解决 |
 |------|------|------|
-| 本机 curl 正常，外网打不开 | 宝塔防火墙未放行端口 | 宝塔面板 → 安全 → 防火墙 → 放行 8080 |
-| 容器启动报 `port is already allocated` | 8080 被宝塔其他站点占用 | 重新执行 `install.sh -p 9000` 指定其他端口 |
+| 本机 curl 正常，外网打不开 | 宝塔防火墙未放行端口 | 宝塔面板 → 安全 → 防火墙 → 放行 Web 端口 |
+| 容器启动报 `port is already allocated` | Web 端口被占用 | 脚本已自动 +1 递增；若仍失败用 `-p` 指定起始端口 |
+| 宝塔安装中断/SSH 断开 | 宝塔安装耗时长，网络抖动 | 重连后重新执行脚本（幂等，已生成配置会保留） |
+| 想用宝塔自带 MySQL 而非容器 | — | 不建议，容器版已含 ngram 中文索引优化；DB 不暴露端口，不影响宝塔自带 MySQL |
+| 忘记宝塔面板密码 | — | `cat /root/pansou-deploy-info.txt` 查看，或 `bt default` 命令重置 |
 | MySQL 容器启动失败 `bind: address already in use` | 3306 被宝塔自带 MySQL 占用 | 脚本已自动避让；若仍失败，编辑 `.env.docker` 改 `DB_EXPOSE_PORT` 为 0（不暴露） |
 | 部署后想用宝塔自带 MySQL 而非容器 | — | 不建议，容器版已含 ngram 中文索引优化；如必须，请用「方式二：标准部署」并修改 `docker-compose.yml` 移除 mysql 服务 |
 
