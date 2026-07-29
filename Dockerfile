@@ -62,34 +62,41 @@ RUN docker-php-ext-enable opcache
 # Redis（PECL）
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Composer（国内镜像加速）
+# Composer（国内镜像加速, 腾讯云首选）
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
-RUN composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/
+RUN composer config -g repo.packagist composer https://mirrors.cloud.tencent.com/composer/
 
 WORKDIR /var/www/html
 
 # 复制项目代码（先只复制 composer 相关文件, 利用 Docker 缓存加速依赖安装）
 COPY composer.json composer.lock* ./
 
-# 安装依赖（增加超时 + 内存不限 + 详细错误输出 + 镜像 fallback）
-# exit code 2 常见原因: 内存不足 / 网络超时 / 镜像不可达
-# - COMPOSER_MEMORY_LIMIT=-1: 解除 composer 内存限制(默认 128M 易耗尽)
-# - process-timeout 300: 单包下载超时 5 分钟
-# - 失败时打印 php 扩展列表 + composer 诊断, 便于定位
+# 安装依赖（宿主机网络 + 内存不限 + 超时延长 + 三级镜像 fallback）
+# exit code 2 常见原因: 网络超时 / 镜像不可达 / 内存不足
+# - network: host 已在 docker-compose.yml 配置, 构建走宿主机网络
+# - COMPOSER_MEMORY_LIMIT=-1: 解除 composer 内存限制
+# - process-timeout 600: 单包下载超时 10 分钟(国内网络慢时兜底)
+# - 三级 fallback: 腾讯云 → 阿里云 → 官方 packagist.org
+# - 失败时打印网络连通性 + php 扩展 + composer 诊断, 便于定位
 RUN set -eux \
     && export COMPOSER_MEMORY_LIMIT=-1 \
-    && composer config -g process-timeout 300 \
+    && composer config -g process-timeout 600 \
+    && echo "=== 网络连通性测试 ===" \
+    && (curl -fsS --max-time 10 https://mirrors.cloud.tencent.com/composer/ >/dev/null && echo "腾讯云镜像: OK" || echo "腾讯云镜像: 不可达") \
+    && (curl -fsS --max-time 10 https://mirrors.aliyun.com/composer/ >/dev/null && echo "阿里云镜像: OK" || echo "阿里云镜像: 不可达") \
+    && echo "=== 开始安装依赖(腾讯云镜像) ===" \
     && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist \
-    || (echo "=== composer install 失败(阿里云镜像), 切换官方镜像重试 ===" \
+    || (echo "=== 腾讯云失败, 切换阿里云镜像 ===" \
+        && composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ \
+        && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist) \
+    || (echo "=== 阿里云失败, 切换官方镜像 ===" \
         && composer config -g repo.packagist composer https://packagist.org \
         && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist) \
-    || (echo "=== composer install 仍然失败, 诊断信息如下 ===" \
+    || (echo "=== 全部失败, 诊断信息如下 ===" \
         && echo "--- PHP 扩展列表 ---" \
         && php -m \
         && echo "--- composer 诊断 ---" \
         && composer diagnose \
-        && echo "--- composer.json 内容 ---" \
-        && cat composer.json \
         && exit 2)
 
 # 复制项目其余代码

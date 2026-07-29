@@ -83,6 +83,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # 构建时使用宿主机网络, 避免 bridge 网络 DNS/路由问题导致
+      # composer 下载包超时(常见于国内服务器 docker build)
+      network: host
     image: pansou-app:latest
     container_name: pansou-app
     restart: unless-stopped
@@ -153,6 +156,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     image: pansou-app:latest
     container_name: pansou-worker
     restart: unless-stopped
